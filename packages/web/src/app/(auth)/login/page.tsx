@@ -63,8 +63,8 @@ export default function LoginPage() {
     }
     setIsLoading(true);
     try {
-      console.log('Logging in with:', email);
-      
+console.log('Logging in with:', email);
+       
       const { error, data } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
@@ -84,13 +84,13 @@ export default function LoginPage() {
       
       // Admin emails that should go to admin dashboard
       const ADMIN_EMAILS = ['ChidexIbe@gmx.com', 'DanielEbirim20@gmail.com'];
-      const email = data.user?.email?.toLowerCase() || '';
-      const isAdminEmail = ADMIN_EMAILS.includes(email);
+      const userEmail = data.user?.email?.toLowerCase() || '';
+      const isAdminEmail = ADMIN_EMAILS.includes(userEmail);
       
       // Get user role from metadata OR check admin email
       const userRole = isAdminEmail ? 'admin' : 
         (data.user?.user_metadata?.role || 
-        data.user?.role ||
+        (data as any).user?.role ||
         'student');
         
       console.log('Redirecting with role:', userRole, 'isAdminEmail:', isAdminEmail);
