@@ -67,8 +67,10 @@ export default function LoginPage() {
       playSuccess();
       toast.success('Logged in successfully!');
       
-      // Use soft redirect to let session persist
-      router.push('/student/dashboard');
+      // Wait for session to confirm before redirect
+      setTimeout(() => {
+        router.push('/student/dashboard');
+      }, 200);
     } catch (err: any) {
       console.error('Catch error:', err);
       playError();
