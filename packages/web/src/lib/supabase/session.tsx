@@ -50,7 +50,28 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         setSession(s);
         
         if (s?.user) {
-          const userFromAuth = buildUserFromAuth(s.user);
+          let userFromAuth = buildUserFromAuth(s.user);
+          
+          // Try to get additional user data from user_profiles table
+          try {
+            const { data: profile } = await supabaseAny
+              .from('user_profiles')
+              .select('*')
+              .eq('id', s.user.id)
+              .single();
+            
+            if (profile) {
+              userFromAuth = {
+                ...userFromAuth,
+                full_name: profile.full_name || userFromAuth.full_name,
+                avatar_url: profile.avatar_url || userFromAuth.avatar_url,
+                department: profile.department_id || profile.department_name || userFromAuth.department,
+              };
+            }
+          } catch (profileError) {
+            // Profile might not exist yet, use auth data only
+          }
+          
           setUserDetails(userFromAuth);
         }
       } catch (e) {

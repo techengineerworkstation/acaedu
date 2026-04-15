@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     let query = supabase
       .from('notifications')
       .select('*', { count: 'exact' })
-      .eq('user_id', authResult.user.id)
+      .eq('user_id', authResult.user.id.toString())
       .order('created_at', { ascending: false });
 
     if (unreadOnly) {

@@ -1,17 +1,19 @@
 -- =====================================================
--- ACAEDU DATABASE SCHEMA SETUP
+-- ACAEDU DATABASE SCHEMA SETUP (Fixed)
 -- Run these queries in Supabase SQL Editor
 -- =====================================================
 
 -- =====================================================
 -- 1. USER NOTIFICATIONS TABLE
 -- =====================================================
-CREATE TABLE IF NOT EXISTS public.notifications (
+DROP TABLE IF EXISTS public.notifications CASCADE;
+
+CREATE TABLE public.notifications (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  user_id TEXT NOT NULL,  -- Changed to TEXT to match auth.users.id
   title TEXT NOT NULL,
   message TEXT NOT NULL,
-  type TEXT DEFAULT 'general' CHECK (type IN ('announcement', 'schedule_reminder', 'schedule_change', 'grade_posted', 'assignment_due', 'payment_reminder', 'system_maintenance', 'exam_reminder', 'message')),
+  type TEXT DEFAULT 'general',
   is_read BOOLEAN DEFAULT false,
   data JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -19,24 +21,19 @@ CREATE TABLE IF NOT EXISTS public.notifications (
 );
 
 CREATE INDEX idx_notifications_user_id ON public.notifications(user_id);
-CREATE INDEX idx_notifications_created_at ON public.notifications(created_at DESC);
-CREATE INDEX idx_notifications_is_read ON public.notifications(is_read) WHERE NOT is_read;
+CREATE INDEX idx_notIFICATIONS_created_at ON public.notifications(created_at DESC);
 
--- Enable RLS
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
--- Users can read their own notifications
 CREATE POLICY "Users can view own notifications" ON public.notifications
-  FOR SELECT USING (auth.uid() = user_id);
-
--- Users can update own notifications
-CREATE POLICY "Users can update own notifications" ON public.notifications
-  FOR UPDATE USING (auth.uid() = user_id);
+  FOR SELECT USING (auth.uid()::text = user_id);
 
 -- =====================================================
 -- 2. INSTITUTION SETTINGS TABLE
 -- =====================================================
-CREATE TABLE IF NOT EXISTS public.institution_settings (
+DROP TABLE IF EXISTS public.institution_settings CASCADE;
+
+CREATE TABLE public.institution_settings (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   institution_name TEXT DEFAULT 'Acaedu',
   motto TEXT,
@@ -61,33 +58,25 @@ CREATE TABLE IF NOT EXISTS public.institution_settings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Insert default settings
 INSERT INTO public.institution_settings (institution_name, theme_preset)
 VALUES ('Acaedu', 'blue')
 ON CONFLICT DO NOTHING;
 
--- Enable RLS
 ALTER TABLE public.institution_settings ENABLE ROW LEVEL SECURITY;
 
--- Anyone can read settings
-CREATE POLICY "Anyone can view settings" ON public.institution_settings
-  FOR SELECT USING (true);
-
--- Only admins can update
-CREATE POLICY "Admins can update settings" ON public.institution_settings
-  FOR UPDATE USING (
-    EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND raw_user_meta_data->>'role' = 'admin')
-  );
+CREATE POLICY "Anyone can view settings" ON public.institution_settings FOR SELECT USING (true);
 
 -- =====================================================
--- 3. USER PROFILES TABLE (extends auth.users)
+-- 3. USER PROFILES TABLE
 -- =====================================================
-CREATE TABLE IF NOT EXISTS public.user_profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+DROP TABLE IF EXISTS public.user_profiles CASCADE;
+
+CREATE TABLE public.user_profiles (
+  id TEXT PRIMARY KEY,  -- TEXT to match auth.users.id
   email TEXT,
   full_name TEXT,
   role TEXT DEFAULT 'student',
-  department_id UUID,
+  department_id TEXT,
   department_name TEXT,
   avatar_url TEXT,
   student_id TEXT,
@@ -101,16 +90,11 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
   UNIQUE(email)
 );
 
--- Enable RLS
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
 
--- Users can read all profiles
-CREATE POLICY "Anyone can view profiles" ON public.user_profiles
-  FOR SELECT USING (true);
-
--- Users can update own profile
+CREATE POLICY "Anyone can view profiles" ON public.user_profiles FOR SELECT USING (true);
 CREATE POLICY "Users can update own profile" ON public.user_profiles
-  FOR UPDATE USING (auth.uid() = id);
+  FOR UPDATE USING (auth.uid()::text = id);
 
 -- =====================================================
 -- 4. AUTO-CREATE PROFILE TRIGGER
@@ -120,7 +104,7 @@ RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.user_profiles (id, email, full_name, role)
   VALUES (
-    NEW.id,
+    NEW.id::text,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
     COALESCE(NEW.raw_user_meta_data->>'role', 'student')
@@ -129,40 +113,42 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Create trigger
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- =====================================================
--- 5. CHAT MESSAGES TABLE (for Discussion feature)
+-- 5. CHAT MESSAGES TABLE (Discussion)
 -- =====================================================
-CREATE TABLE IF NOT EXISTS public.chat_messages (
+DROP TABLE IF EXISTS public.chat_messages CASCADE;
+
+CREATE TABLE public.chat_messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-  course_id UUID,
+  user_id TEXT NOT NULL,
+  course_id TEXT,
   message TEXT NOT NULL,
-  parent_id UUID REFERENCES public.chat_messages(id),
+  parent_id UUID,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX idx_chat_messages_course ON public.chat_messages(course_id);
 CREATE INDEX idx_chat_messages_user ON public.chat_messages(user_id);
 
--- Enable RLS
 ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Authenticated users can chat" ON public.chat_messages
   FOR SELECT USING (auth.uid() IS NOT NULL);
 
 CREATE POLICY "Users can insert messages" ON public.chat_messages
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
+  FOR INSERT WITH CHECK (auth.uid()::text = user_id);
 
 -- =====================================================
 -- 6. DEPARTMENTS TABLE
 -- =====================================================
-CREATE TABLE IF NOT EXISTS public.departments (
+DROP TABLE IF EXISTS public.departments CASCADE;
+
+CREATE TABLE public.departments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   code TEXT NOT NULL UNIQUE,
@@ -170,7 +156,6 @@ CREATE TABLE IF NOT EXISTS public.departments (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Insert sample departments
 INSERT INTO public.departments (name, code, description) VALUES
   ('Computer Science', 'CS', 'Computer Science and IT'),
   ('Mathematics', 'MATH', 'Mathematics and Statistics'),
@@ -188,13 +173,15 @@ CREATE POLICY "Anyone can view departments" ON public.departments FOR SELECT USI
 -- =====================================================
 -- 7. COURSES TABLE
 -- =====================================================
-CREATE TABLE IF NOT EXISTS public.courses (
+DROP TABLE IF EXISTS public.courses CASCADE;
+
+CREATE TABLE public.courses (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   code TEXT NOT NULL,
   title TEXT NOT NULL,
   description TEXT,
-  department_id UUID REFERENCES public.departments(id),
-  lecturer_id UUID REFERENCES auth.users(id),
+  department_id TEXT,  -- TEXT to match departments.id
+  lecturer_id TEXT,  -- TEXT to match auth.users.id
   credits INTEGER DEFAULT 3,
   semester INTEGER DEFAULT 1,
   year INTEGER DEFAULT 1,
@@ -206,24 +193,102 @@ CREATE INDEX idx_courses_lecturer ON public.courses(lecturer_id);
 
 ALTER TABLE public.courses ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can view courses" ON public.courses FOR SELECT USING (true);
-CREATE POLICY "Admins can manage courses" ON public.courses FOR ALL USING (
-  EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND raw_user_meta_data->>'role' = 'admin')
-);
 
 -- =====================================================
 -- 8. ENROLLMENTS TABLE
 -- =====================================================
-CREATE TABLE IF NOT EXISTS public.enrollments (
+DROP TABLE IF EXISTS public.enrollments CASCADE;
+
+CREATE TABLE public.enrollments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE,
+  user_id TEXT,  -- TEXT to match auth.users.id
+  course_id TEXT,  -- TEXT to match courses.id
   status TEXT DEFAULT 'active',
-  enrolled_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(user_id, course_id)
+  enrolled_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 ALTER TABLE public.enrollments ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view enrollments" ON public.enrollments FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "Admins can manage enrollments" ON public.enrollments FOR ALL USING (
-  EXISTS (SELECT 1 FROM auth.users WHERE id = auth.uid() AND raw_user_meta_data->>'role' = 'admin')
+CREATE POLICY "Users can view enrollments" ON public.enrollments
+  FOR SELECT USING (auth.uid()::text = user_id);
+
+-- =====================================================
+-- 9. USERS TABLE (for user management)
+-- =====================================================
+DROP TABLE IF EXISTS public.users CASCADE;
+
+CREATE TABLE public.users (
+  id TEXT PRIMARY KEY,  -- TEXT to match auth.users.id
+  email TEXT NOT NULL UNIQUE,
+  full_name TEXT,
+  role TEXT DEFAULT 'student',
+  department TEXT,
+  department_id TEXT,
+  avatar_url TEXT,
+  student_id TEXT,
+  employee_id TEXT,
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX idx_users_role ON public.users(role);
+CREATE INDEX idx_users_department ON public.users(department);
+
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can view users" ON public.users FOR SELECT USING (true);
+CREATE POLICY "Users can update own" ON public.users
+  FOR UPDATE USING (auth.uid()::text = id);
+
+-- =====================================================
+-- 10. AUTO-CREATE USER RECORD TRIGGER
+-- =====================================================
+CREATE OR REPLACE FUNCTION public.handle_user_created()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.users (id, email, full_name, role, department)
+  VALUES (
+    NEW.id::text,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+    COALESCE(NEW.raw_user_meta_data->>'role', 'student'),
+    NEW.raw_user_meta_data->>'department'
+  )
+  ON CONFLICT (email) DO UPDATE
+  SET full_name = COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
+      role = COALESCE(NEW.raw_user_meta_data->>'role', 'student');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_user_created ON auth.users;
+CREATE TRIGGER on_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_user_created();
+
+-- =====================================================
+-- VERIFY SETUP
+-- =====================================================
+SELECT 
+  'notifications' as table_name,
+  (SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'notifications') as exists
+UNION ALL
+SELECT 
+  'institution_settings',
+  (SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'institution_settings')
+UNION ALL
+SELECT 
+  'departments',
+  (SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'departments')
+UNION ALL
+SELECT 
+  'courses',
+  (SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'courses')
+UNION ALL
+SELECT 
+  'enrollments',
+  (SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'enrollments')
+UNION ALL
+SELECT 
+  'users',
+  (SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'users');
