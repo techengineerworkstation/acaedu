@@ -118,9 +118,18 @@ export default function DashboardLayout({ children, role }: DashboardLayoutProps
   const { settings, currentColors } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('soundEnabled') !== 'false';
+    }
+    return true;
+  });
   const [showSplash, setShowSplash] = useState(false);
   const { playClick, playSuccess, playError, playNotification } = useSoundEffects({ enabled: soundEnabled });
+
+  useEffect(() => {
+    localStorage.setItem('soundEnabled', String(soundEnabled));
+  }, [soundEnabled]);
 
   const config = roleConfig[role] || roleConfig.student;
   const hasNotifications = config.navItems.some(item => item.href.includes('notifications'));

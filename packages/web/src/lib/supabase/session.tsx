@@ -87,6 +87,12 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     await supabaseAny.auth.signOut();
     setSession(null);
     setUserDetails(null);
+    // Clear all auth cookies
+    if (typeof document !== 'undefined') {
+      document.cookie.split(';').forEach(c => {
+        document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+      });
+    }
   };
 
   return (
