@@ -82,14 +82,18 @@ export default function LoginPage() {
       playSuccess();
       toast.success('Logged in successfully!');
       
-      // Get user role from metadata and redirect accordingly
-      // Try multiple paths to get role
-      const userRole = 
-        data.user?.user_metadata?.role || 
+      // Admin emails that should go to admin dashboard
+      const ADMIN_EMAILS = ['ChidexIbe@gmx.com', 'DanielEbirim20@gmail.com'];
+      const email = data.user?.email?.toLowerCase() || '';
+      const isAdminEmail = ADMIN_EMAILS.includes(email);
+      
+      // Get user role from metadata OR check admin email
+      const userRole = isAdminEmail ? 'admin' : 
+        (data.user?.user_metadata?.role || 
         data.user?.role ||
-        'student';
+        'student');
         
-      console.log('Redirecting with role:', userRole);
+      console.log('Redirecting with role:', userRole, 'isAdminEmail:', isAdminEmail);
       
       const rolePaths: Record<string, string> = {
         student: '/student/dashboard',
