@@ -24,32 +24,34 @@ export default function LoginPage() {
 
   useEffect(() => {
     setIsMounted(true);
+    
+    // Check for session error cookie (client-side only)
+    if (typeof document !== 'undefined') {
+      try {
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+          const [name, value] = cookie.trim().split('=');
+          if (name === 'auth_error') {
+            document.cookie = 'auth_error=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            if (value === 'session_expired') {
+              toast.error('Session expired. Please sign in again.');
+            }
+            break;
+          }
+        }
+      } catch (e) {
+        // Ignore cookie errors
+      }
+    }
   }, []);
 
   if (!isMounted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="animate-pulse rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="animate-pulse rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
-
-  useEffect(() => {
-    const checkSessionError = () => {
-      const cookies = document.cookie.split(';');
-      for (const cookie of cookies) {
-        const [name, value] = cookie.trim().split('=');
-        if (name === 'auth_error') {
-          document.cookie = 'auth_error=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-          if (value === 'session_expired') {
-            toast.error('Session expired. Please sign in again.');
-          }
-          break;
-        }
-      }
-    };
-    checkSessionError();
-  }, []);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
