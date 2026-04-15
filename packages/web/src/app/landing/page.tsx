@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useState, useEffect } from 'react';
+import SplashScreen from '@/components/ui/SplashScreen';
 
 export default function LandingPage() {
   const { settings, currentColors } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     setMounted(true);
@@ -19,6 +21,10 @@ export default function LandingPage() {
         <div className="animate-pulse rounded-full h-12 w-12 border-b-2" style={{ borderColor: currentColors.primary }}></div>
       </div>
     );
+  }
+
+  if (showSplash) {
+    return <SplashScreen role="student" onComplete={() => setShowSplash(false)} />;
   }
 
   return (
