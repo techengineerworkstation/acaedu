@@ -8,6 +8,7 @@ import Card from '@/components/ui/Card';
 import { toast } from 'react-hot-toast';
 import Image from 'next/image';
 import ThemeSelector from '@/components/settings/ThemeSelector';
+import ExportToFigma from '@/components/settings/ExportToFigma';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useCurrency, CURRENCIES } from '@/contexts/CurrencyContext';
 import { GlobeAltIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
@@ -411,6 +412,11 @@ export default function AdminSettingsPage() {
               Save Notification Settings
             </Button>
           </div>
+        </Card>
+
+        {/* Export to Figma */}
+        <Card>
+          <ExportToFigma />
         </Card>
       </div>
     </DashboardLayout>

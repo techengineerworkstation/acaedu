@@ -58,7 +58,8 @@ const roleConfig = {
       { href: '/student/notifications', label: 'Notifications', icon: BellIcon },
       { href: '/student/venues', label: 'Class Venues', icon: MapPinIcon },
       { href: '/student/events', label: 'Events', icon: CalendarIcon },
-      { href: '/student/profile', label: 'Profile', icon: UserIcon }
+      { href: '/student/profile', label: 'Profile', icon: UserIcon },
+      { href: '/student/settings', label: 'Settings', icon: CogIcon }
     ]
   },
   lecturer: {
@@ -76,7 +77,8 @@ const roleConfig = {
       { href: '/lecturer/videos', label: 'Lecture Videos', icon: VideoCameraIcon },
       { href: '/lecturer/materials', label: 'Materials', icon: DocumentTextIcon },
       { href: '/lecturer/notifications', label: 'Notifications', icon: BellIcon },
-      { href: '/lecturer/profile', label: 'Profile', icon: UserIcon }
+      { href: '/lecturer/profile', label: 'Profile', icon: UserIcon },
+      { href: '/lecturer/settings', label: 'Settings', icon: CogIcon }
     ]
   },
   dean: {
@@ -222,7 +224,7 @@ export default function DashboardLayout({ children, role }: DashboardLayoutProps
                 <input
                   type="text"
                   placeholder="Search courses, announcements, events..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -251,9 +253,6 @@ export default function DashboardLayout({ children, role }: DashboardLayoutProps
                   className="relative p-2 text-gray-500 hover:text-gray-700"
                 >
                   <BellIcon className="h-6 w-6" />
-                  <span className="absolute -top-1 -right-1 bg-error-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    3
-                  </span>
                 </Link>
               )}
 
