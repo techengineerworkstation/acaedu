@@ -78,13 +78,23 @@ export default function LoginPage() {
         return;
       }
       
-      console.log('Login success, user:', data.user?.id);
+      console.log('Login success, user:', data.user?.id, 'role:', data.user?.user_metadata?.role);
       playSuccess();
       toast.success('Logged in successfully!');
       
+      // Get user role from metadata and redirect accordingly
+      const userRole = data.user?.user_metadata?.role || 'student';
+      const rolePaths: Record<string, string> = {
+        student: '/student/dashboard',
+        lecturer: '/lecturer/dashboard',
+        admin: '/admin/dashboard',
+        dean: '/admin/dashboard'
+      };
+      const redirectPath = rolePaths[userRole] || '/student/dashboard';
+      
       // Wait for session to confirm before redirect
       setTimeout(() => {
-        router.push('/student/dashboard');
+        router.push(redirectPath);
       }, 200);
     } catch (err: any) {
       console.error('Catch error:', err);
