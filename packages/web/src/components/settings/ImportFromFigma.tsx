@@ -4,20 +4,22 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { toast } from 'react-hot-toast';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { THEME_PRESETS } from '@/lib/theme';
 
 interface FigmaColorInput {
   name: string;
   key: string;
+  defaultValue: string;
 }
 
 const colorFields: FigmaColorInput[] = [
-  { name: 'Primary Color', key: 'primary' },
-  { name: 'Secondary Color', key: 'secondary' },
-  { name: 'Accent Color', key: 'accent' },
-  { name: 'Background', key: 'background' },
-  { name: 'Surface', key: 'surface' },
-  { name: 'Text Primary', key: 'textPrimary' },
-  { name: 'Text Secondary', key: 'textSecondary' },
+  { name: 'Primary Color', key: 'primary', defaultValue: '#3b82f6' },
+  { name: 'Secondary Color', key: 'secondary', defaultValue: '#8b5cf6' },
+  { name: 'Accent Color', key: 'accent', defaultValue: '#06b6d4' },
+  { name: 'Background', key: 'background', defaultValue: '#ffffff' },
+  { name: 'Surface', key: 'surface', defaultValue: '#f3f4f6' },
+  { name: 'Text Primary', key: 'textPrimary', defaultValue: '#1f2937' },
+  { name: 'Text Secondary', key: 'textSecondary', defaultValue: '#6b7280' },
 ];
 
 export default function ImportFromFigma() {
@@ -40,7 +42,7 @@ export default function ImportFromFigma() {
   const handleApply = async () => {
     setIsImporting(true);
     try {
-      // Update the theme preset to custom
+      // Use 'custom' preset with these colors
       await updateSettings({
         theme_preset: 'custom',
         primary_color: colors.primary,
@@ -51,8 +53,12 @@ export default function ImportFromFigma() {
         text_primary_color: colors.textPrimary,
         text_secondary_color: colors.textSecondary,
       });
-      setThemePreset('custom');
-      toast.success('Theme colors imported from Figma!');
+      
+      // Save to localStorage
+      localStorage.setItem('theme_preset', 'custom');
+      localStorage.setItem('custom_colors', JSON.stringify(colors));
+      
+      toast.success('Theme imported from Figma!');
     } catch (e) {
       toast.error('Failed to apply colors');
     } finally {
@@ -63,23 +69,32 @@ export default function ImportFromFigma() {
   const handlePaste = async () => {
     try {
       const text = await navigator.clipboard.readText();
-      // Try to parse CSS variables or JSON
-      if (text.includes(':')) {
-        const newColors = { ...colors };
-        
-        // Extract colors from CSS
-        const matches = text.match(/--[\w-]+:\s*#[0-9a-fA-F]{3,6}/g);
-        if (matches) {
-          matches.forEach((match: string) => {
-            const [key, value] = match.split(':').map(s => s.trim());
-            const colorKey = key.replace('--color-', '').replace('--', '');
-            if (colorKey in newColors) {
-              newColors[colorKey as keyof typeof newColors] = value;
-            }
-          });
-          setColors(newColors);
-          toast.success('Colors extracted from clipboard!');
+      
+      // Try to extract CSS custom properties
+      const colorMap: Record<string, string> = {};
+      const patterns = [
+        /--color-(\w+):\s*(#[0-9a-fA-F]{3,8})/g,
+        /--(\w+-color):\s*(#[0-9a-fA-F]{3,8})/g,
+        /(\w+):\s*(#[0-9a-fA-F]{3,8})/g,
+      ];
+      
+      let found = false;
+      for (const pattern of patterns) {
+        let match;
+        while ((match = pattern.exec(text)) !== null) {
+          const key = match[1].replace('-color', '').replace('primary', 'primary').replace('secondary', 'secondary');
+          if (key in colors || colorFields.some(f => f.key === key)) {
+            colorMap[key] = match[2];
+            found = true;
+          }
         }
+      }
+      
+      if (found) {
+        setColors(prev => ({ ...prev, ...colorMap }));
+        toast.success('Colors extracted from clipboard!');
+      } else {
+        toast.error('No valid colors found in clipboard');
       }
     } catch (e) {
       toast.error('Could not read clipboard');
@@ -103,7 +118,7 @@ export default function ImportFromFigma() {
       </div>
 
       <p className="text-sm text-gray-500 dark:text-gray-400">
-        Enter colors from your Figma design tokens. You can copy CSS variables or individual hex colors.
+        Enter colors from your Figma design tokens or paste CSS variables directly.
       </p>
 
       <div className="grid grid-cols-2 gap-4">
@@ -115,13 +130,13 @@ export default function ImportFromFigma() {
             <div className="flex gap-2">
               <input
                 type="color"
-                value={colors[field.key as keyof typeof colors]}
+                value={colors[field.key as keyof typeof colors] || field.defaultValue}
                 onChange={(e) => handleColorChange(field.key, e.target.value)}
                 className="w-12 h-10 rounded cursor-pointer"
               />
               <input
                 type="text"
-                value={colors[field.key as keyof typeof colors]}
+                value={colors[field.key as keyof typeof colors] || field.defaultValue}
                 onChange={(e) => handleColorChange(field.key, e.target.value)}
                 placeholder="#000000"
                 className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-mono"
@@ -155,7 +170,7 @@ export default function ImportFromFigma() {
           </div>
           <div
             className="w-16 h-16 rounded-lg flex items-center justify-center text-xs font-medium border"
-            style={{ backgroundColor: colors.background, borderColor: colors.textSecondary }}
+            style={{ backgroundColor: colors.background, color: colors.textPrimary }}
           >
             BG
           </div>
@@ -170,7 +185,7 @@ export default function ImportFromFigma() {
         {isImporting ? 'Applying...' : 'Apply Theme Colors'}
       </button>
 
-      {/* Quick presets from Figma export */}
+      {/* Quick presets */}
       <div className="border-t pt-4 mt-4">
         <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Quick Presets</p>
         <div className="grid grid-cols-3 gap-2">

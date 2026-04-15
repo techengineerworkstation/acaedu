@@ -18,15 +18,26 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-// Apply default theme colors immediately on module load
+// Apply saved theme from localStorage or default
+function getInitialTheme(): ThemeColors {
+  if (typeof window === 'undefined') return THEME_PRESETS.turquoise;
+  
+  const stored = localStorage.getItem('theme_preset');
+  if (stored && THEME_PRESETS[stored as keyof typeof THEME_PRESETS]) {
+    return THEME_PRESETS[stored as keyof typeof THEME_PRESETS];
+  }
+  return THEME_PRESETS.turquoise;
+}
+
+// Apply initial theme immediately to prevent flash
 if (typeof window !== 'undefined') {
-  applyThemeToDOM(THEME_PRESETS.turquoise);
+  applyThemeToDOM(getInitialTheme());
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [settings, setSettings] = useState<InstitutionSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentColors, setCurrentColors] = useState<ThemeColors>(THEME_PRESETS.turquoise);
+  const [currentColors, setCurrentColors] = useState<ThemeColors>(getInitialTheme());
   const [theme, setThemeState] = useState<'light' | 'dark' | 'system'>('system');
   const [isDark, setIsDark] = useState(false);
 
@@ -79,6 +90,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wdWhkeWJ0dGRheGlyaW5yY3NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDUzNjQsImV4cCI6MjA5MDgyMTM2NH0.r5a0fJwurwyYaUbWxjJTK_-cBklbLLZIUv4WceEUCPM'
       );
 
+      // First check localStorage for custom colors
+      const storedCustom = localStorage.getItem('custom_colors');
+      if (storedCustom) {
+        const custom = JSON.parse(storedCustom);
+        setCurrentColors(custom);
+        applyThemeToDOM(custom);
+        setIsLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('institution_settings')
         .select('*')
@@ -86,12 +107,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
       if (error || !data) {
         // Try localStorage fallback
-        const storedPreset = localStorage.getItem('theme_preset');
-        if (storedPreset) {
-          const colors = THEME_PRESETS[storedPreset as keyof typeof THEME_PRESETS] || THEME_PRESETS.turquoise;
-          setCurrentColors(colors);
-          applyThemeToDOM(colors);
-        }
+        const storedPreset = localStorage.getItem('theme_preset') || 'turquoise';
+        const colors = THEME_PRESETS[storedPreset as keyof typeof THEME_PRESETS] || THEME_PRESETS.turquoise;
+        setCurrentColors(colors);
+        applyThemeToDOM(colors);
         setIsLoading(false);
         return;
       }
@@ -110,7 +129,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           textSecondary: data.text_secondary_color || '#6b7280'
         };
       } else {
-        colors = THEME_PRESETS[data.theme_preset as keyof typeof THEME_PRESETS] || THEME_PRESETS.turquoise;
+        // Try to get from presets, fallback to turquoise
+        colors = THEME_PRESETS[data.theme_preset as keyof typeof THEME_PRESETS] || 
+                 (THEME_PRESETS as any)[data.theme_preset] || 
+                 THEME_PRESETS.turquoise;
       }
       setCurrentColors(colors);
       applyThemeToDOM(colors);
@@ -119,12 +141,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error('Error fetching settings:', e);
       // Load from localStorage on error
-      const storedPreset = localStorage.getItem('theme_preset');
-      if (storedPreset) {
-        const colors = THEME_PRESETS[storedPreset as keyof typeof THEME_PRESETS] || THEME_PRESETS.turquoise;
-        setCurrentColors(colors);
-        applyThemeToDOM(colors);
-      }
+      const storedPreset = localStorage.getItem('theme_preset') || 'turquoise';
+      const colors = THEME_PRESETS[storedPreset as keyof typeof THEME_PRESETS] || THEME_PRESETS.turquoise;
+      setCurrentColors(colors);
+      applyThemeToDOM(colors);
     } finally {
       setIsLoading(false);
     }
@@ -194,6 +214,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const colors = THEME_PRESETS[preset] || THEME_PRESETS.turquoise;
     setCurrentColors(colors);
     applyThemeToDOM(colors);
+    // Save to localStorage immediately for persistence
+    localStorage.setItem('theme_preset', preset);
     updateSettings({ theme_preset: preset });
   };
 
