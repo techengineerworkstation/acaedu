@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm build:*)",
+      "Bash(grep \"signInWithPopup\\\\|GoogleAuthProvider\\\\|OAuthProvider\" /home/hptechworkpc/Apps/acadion/node_modules/@firebase/auth/dist/esm2017/index-*.d.ts)",
+      "Bash(grep \"signInWithPopup\\\\|GoogleAuthProvider\\\\|OAuthProvider\" /home/hptechworkpc/Apps/acadion/node_modules/.pnpm/@firebase+auth@1.7.9_@firebase+app@0.10.13_@react-native-async-storage+async-storage@1._2c373e7d04e74b53d5a82cf659a464d4/node_modules/@firebase/auth/dist/esm2017/index-*.d.ts)",
+      "Bash(pnpm install:*)",
+      "Bash(CI=true pnpm install)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}

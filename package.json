@@ -1,0 +1,47 @@
+{
+  "name": "acadion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Smart Academic Notification & Scheduling System",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "start:dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "type-check": "turbo run type-check",
+    "test": "turbo run test",
+    "test:watch": "turbo run test:watch",
+    "db:push": "cd supabase && supabase db push",
+    "db:seed": "cd supabase && supabase db seed",
+    "db:studio": "supabase studio"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "prettier": "^3.1.0",
+    "turbo": "^2.9.3",
+    "typescript": "^6.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=10.33.0"
+  },
+  "packageManager": "pnpm@10.33.0",
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "^3.0.2",
+    "@sentry/nextjs": "^10.47.0",
+    "@tanstack/react-query": "^5.0.0",
+    "@tanstack/react-query-devtools": "^5.0.0",
+    "@types/react": "^19.2.14",
+    "eslint": "^10.1.0",
+    "firebase": "^12.11.0",
+    "framer-motion": "^12.38.0",
+    "next": "^16.2.2",
+    "react": "^19.2.0",
+    "react-dom": "18.3.1",
+    "react-native": "^0.84.1",
+    "supabase": "^2.84.6"
+  }
+}
