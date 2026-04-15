@@ -21,16 +21,21 @@ export default function RootPage() {
   useEffect(() => {
     if (mounted && !showSplash) {
       if (user?.role) {
-        const rolePath: Record<string, string> = {
+        const rolePaths: Record<string, string> = {
           student: '/student/dashboard',
           lecturer: '/lecturer/dashboard',
           admin: '/admin/dashboard',
           dean: '/admin/dashboard'
-        }[user.role];
+        };
+        const rolePath = rolePaths[user.role];
 
         if (rolePath) {
           router.push(rolePath);
+        } else {
+          router.push('/landing');
         }
+      } else {
+        router.push('/landing');
       }
     }
   }, [mounted, showSplash, user, router]);

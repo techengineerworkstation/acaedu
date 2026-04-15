@@ -163,21 +163,10 @@ export default function DashboardLayout({ children, role }: DashboardLayoutProps
     setSoundEnabled(!soundEnabled);
   }, [soundEnabled, playError, playSuccess]);
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-        <div className="text-center">
-          <p className="text-gray-600 dark:text-gray-400 mb-4">Unable to load session</p>
-          <a href="/login" className="text-primary-600 hover:text-primary-700">Sign in again</a>
-        </div>
       </div>
     );
   }
