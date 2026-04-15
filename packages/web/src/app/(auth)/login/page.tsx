@@ -67,8 +67,8 @@ export default function LoginPage() {
       playSuccess();
       toast.success('Logged in successfully!');
       
-      // Simple redirect - let the dashboard pages handle auth
-      window.location.href = '/student/dashboard';
+      // Use soft redirect to let session persist
+      router.push('/student/dashboard');
     } catch (err: any) {
       console.error('Catch error:', err);
       playError();
