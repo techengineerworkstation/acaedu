@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { InstitutionSettings, ThemeColors, THEME_PRESETS, applyThemeToDOM } from '@/lib/theme';
+import type { ThemeColors } from '@/lib/theme';
+import { InstitutionSettings, THEME_PRESETS, applyThemeToDOM } from '@/lib/theme';
 
 interface ThemeContextType {
   settings: InstitutionSettings | null;
@@ -159,7 +160,15 @@ export function useTheme() {
     return {
       settings: null,
       isLoading: false,
-      currentColors: { primary: '#3b82f6', secondary: '#8b5cf6', accent: '#06b6d4' },
+      currentColors: { 
+        primary: '#3b82f6', 
+        secondary: '#8b5cf6', 
+        accent: '#06b6d4',
+        background: '#ffffff',
+        surface: '#f3f4f6',
+        textPrimary: '#1f2937',
+        textSecondary: '#6b7280'
+      } as ThemeColors,
       theme: 'system' as const,
       setTheme: () => {},
       isDark: false,
