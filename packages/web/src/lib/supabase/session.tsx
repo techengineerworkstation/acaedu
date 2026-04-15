@@ -99,7 +99,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 export function useSession() {
   const context = useContext(SessionContext);
   if (context === undefined) {
-    return { session: null, user: null, isLoading: true, signOut: async () => {} };
+    return { session: null, user: null, isLoading: false, signOut: async () => {} };
   }
   return context;
 }

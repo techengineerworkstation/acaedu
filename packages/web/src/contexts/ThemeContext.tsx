@@ -156,7 +156,16 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (context === undefined) {
-    throw new Error('useTheme must be used within ThemeProvider');
+    return {
+      settings: null,
+      isLoading: false,
+      currentColors: { primary: '#3b82f6', secondary: '#8b5cf6', accent: '#06b6d4' },
+      theme: 'system' as const,
+      setTheme: () => {},
+      isDark: false,
+      updateSettings: async () => ({ error: 'Not in provider' }),
+      setThemePreset: () => {}
+    };
   }
   return context;
 }
