@@ -78,12 +78,19 @@ export default function LoginPage() {
         return;
       }
       
-      console.log('Login success, user:', data.user?.id, 'role:', data.user?.user_metadata?.role);
+      console.log('Login success, user:', data.user?.id, 'role:', data.user?.user_metadata?.role, 'all metadata:', data.user?.user_metadata);
       playSuccess();
       toast.success('Logged in successfully!');
       
       // Get user role from metadata and redirect accordingly
-      const userRole = data.user?.user_metadata?.role || 'student';
+      // Try multiple paths to get role
+      const userRole = 
+        data.user?.user_metadata?.role || 
+        data.user?.role ||
+        'student';
+        
+      console.log('Redirecting with role:', userRole);
+      
       const rolePaths: Record<string, string> = {
         student: '/student/dashboard',
         lecturer: '/lecturer/dashboard',
@@ -92,10 +99,12 @@ export default function LoginPage() {
       };
       const redirectPath = rolePaths[userRole] || '/student/dashboard';
       
+      console.log('Redirecting to:', redirectPath);
+      
       // Wait for session to confirm before redirect
       setTimeout(() => {
         router.push(redirectPath);
-      }, 200);
+      }, 500);
     } catch (err: any) {
       console.error('Catch error:', err);
       playError();
