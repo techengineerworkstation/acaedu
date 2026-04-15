@@ -28,6 +28,7 @@ export default function RegisterPage() {
   const { playClick, playSuccess, playError } = useSoundEffects();
   const [role, setRole] = useState<typeof ROLES[keyof typeof ROLES]>(ROLES.STUDENT);
   const [isLoading, setIsLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -35,6 +36,18 @@ export default function RegisterPage() {
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedYear, setSelectedYear] = useState('1');
   const [selectedSemester, setSelectedSemester] = useState('1');
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="animate-pulse rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   // Auto-set role based on email
   useEffect(() => {
@@ -46,10 +59,10 @@ export default function RegisterPage() {
   }, [email]);
 
   useEffect(() => {
-    if (role === ROLES.STUDENT) {
+    if (isMounted && role === ROLES.STUDENT) {
       fetchDepartments();
     }
-  }, [role]);
+  }, [isMounted, role]);
 
   const fetchDepartments = async () => {
     try {
