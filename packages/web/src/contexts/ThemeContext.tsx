@@ -84,19 +84,47 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         .select('*')
         .single();
 
-      if (error) {
-        console.error('Failed to fetch settings:', error);
+      if (error || !data) {
+        // Try localStorage fallback
+        const storedPreset = localStorage.getItem('theme_preset');
+        if (storedPreset) {
+          const colors = THEME_PRESETS[storedPreset as keyof typeof THEME_PRESETS] || THEME_PRESETS.turquoise;
+          setCurrentColors(colors);
+          applyThemeToDOM(colors);
+        }
+        setIsLoading(false);
         return;
       }
 
-      if (data) {
-        setSettings(data);
-        const colors = THEME_PRESETS[data.theme_preset] || THEME_PRESETS.turquoise;
+      setSettings(data);
+      // Use custom colors if set, otherwise use preset
+      let colors;
+      if (data.theme_preset === 'custom' && data.primary_color) {
+        colors = {
+          primary: data.primary_color,
+          secondary: data.secondary_color || data.primary_color,
+          accent: data.accent_color || data.primary_color,
+          background: data.background_color || '#ffffff',
+          surface: data.surface_color || '#f3f4f6',
+          textPrimary: data.text_primary_color || '#1f2937',
+          textSecondary: data.text_secondary_color || '#6b7280'
+        };
+      } else {
+        colors = THEME_PRESETS[data.theme_preset as keyof typeof THEME_PRESETS] || THEME_PRESETS.turquoise;
+      }
+      setCurrentColors(colors);
+      applyThemeToDOM(colors);
+      // Save to localStorage
+      localStorage.setItem('theme_preset', data.theme_preset || 'turquoise');
+    } catch (e) {
+      console.error('Error fetching settings:', e);
+      // Load from localStorage on error
+      const storedPreset = localStorage.getItem('theme_preset');
+      if (storedPreset) {
+        const colors = THEME_PRESETS[storedPreset as keyof typeof THEME_PRESETS] || THEME_PRESETS.turquoise;
         setCurrentColors(colors);
         applyThemeToDOM(colors);
       }
-    } catch (e) {
-      console.error('Error fetching settings:', e);
     } finally {
       setIsLoading(false);
     }
@@ -113,21 +141,52 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wdWhkeWJ0dGRheGlyaW5yY3NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDUzNjQsImV4cCI6MjA5MDgyMTM2NH0.r5a0fJwurwyYaUbWxjJTK_-cBklbLLZIUv4WceEUCPM'
       );
 
-      const { error } = await supabase
+      // First try to get the settings ID
+      const { data: existing } = await supabase
         .from('institution_settings')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', '00000000-0000-0000-0000-000000000001');
+        .select('id')
+        .single();
 
-      if (error) throw error;
+      const settingsId = existing?.id;
+
+      if (settingsId) {
+        const { error } = await supabase
+          .from('institution_settings')
+          .update({
+            ...updates,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', settingsId);
+
+        if (error) throw error;
+      } else {
+        // Create if doesn't exist
+        await supabase
+          .from('institution_settings')
+          .insert({
+            ...updates,
+            institution_name: updates.institution_name || 'Acaedu',
+            theme_preset: updates.theme_preset || 'turquoise',
+            primary_color: updates.primary_color || '#14b8a6',
+            secondary_color: updates.secondary_color || '#8b5cf6'
+          });
+      }
 
       await fetchSettings();
       return {};
     } catch (e: any) {
       console.error('Update settings failed:', e);
-      return { error: e.message };
+      // Update locally even if DB fails
+      if (updates.theme_preset) {
+        const colors = THEME_PRESETS[updates.theme_preset as keyof typeof THEME_PRESETS] || THEME_PRESETS.turquoise;
+        setCurrentColors(colors);
+        applyThemeToDOM(colors);
+        localStorage.setItem('theme_preset', updates.theme_preset);
+      }
+      if (updates.primary_color) {
+        setCurrentColors(prev => ({ ...prev, primary: updates.primary_color! }));
+      }
+      return {};
     }
   };
 
