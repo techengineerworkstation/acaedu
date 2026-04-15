@@ -5,7 +5,9 @@ import { reminderTemplate } from './templates/reminder';
 import { billingTemplate } from './templates/billing';
 import { examResultTemplate } from './templates/exam-result';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY 
+  ? new Resend(process.env.RESEND_API_KEY) 
+  : null;
 
 export interface EmailData {
   to: string;
@@ -21,6 +23,10 @@ export interface EmailData {
  */
 export async function sendEmail(data: EmailData): Promise<{ success: boolean; error?: string }> {
   try {
+    if (!resend) {
+      return { success: false, error: 'RESEND_API_KEY not configured' };
+    }
+    
     const response = await resend.emails.send({
       from: data.from || process.env.EMAIL_FROM || 'Acaedu <noreply@acadion.com>',
       to: data.to,

@@ -48,24 +48,29 @@ export default function LoginPage() {
     }
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log('Logging in with:', email);
+      
+      const { error, data } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
 
       if (error) {
-        console.error('Auth: Email login error:', error);
+        console.error('Login error:', error);
         playError();
         toast.error(`Login failed: ${error.message}`);
-      } else {
-        playSuccess();
-        toast.success('Logged in successfully!');
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 500);
+        setIsLoading(false);
+        return;
       }
+      
+      console.log('Login success, user:', data.user?.id);
+      playSuccess();
+      toast.success('Logged in successfully!');
+      
+      // Simple redirect - let the dashboard pages handle auth
+      window.location.href = '/student/dashboard';
     } catch (err: any) {
-      console.error('Email login error:', err);
+      console.error('Catch error:', err);
       playError();
       toast.error(err.message || 'Login failed');
     } finally {
@@ -86,7 +91,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback`
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback?next=/student/dashboard`
         }
       });
 

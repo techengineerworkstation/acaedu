@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { typedSupabase as supabase } from '@/lib/supabase/client';
 import Button from '@/components/ui/button';
@@ -17,7 +18,12 @@ interface Department {
   code: string;
 }
 
+// Admin emails that can register as admin
+const ADMIN_EMAILS = ['ChidexIbe@gmx.com', 'DanielEbirim20@gmail.com'];
+
+// All other emails register as students
 export default function RegisterPage() {
+  const router = useRouter();
   const { settings, currentColors } = useTheme();
   const { playClick, playSuccess, playError } = useSoundEffects();
   const [role, setRole] = useState<typeof ROLES[keyof typeof ROLES]>(ROLES.STUDENT);
@@ -29,6 +35,15 @@ export default function RegisterPage() {
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedYear, setSelectedYear] = useState('1');
   const [selectedSemester, setSelectedSemester] = useState('1');
+
+  // Auto-set role based on email
+  useEffect(() => {
+    if (ADMIN_EMAILS.includes(email.toLowerCase())) {
+      setRole(ROLES.ADMIN);
+    } else if (email && !ADMIN_EMAILS.includes(email.toLowerCase())) {
+      setRole(ROLES.STUDENT);
+    }
+  }, [email]);
 
   useEffect(() => {
     if (role === ROLES.STUDENT) {
@@ -95,9 +110,28 @@ export default function RegisterPage() {
       } else {
         playSuccess();
         if (data.session) {
-          toast.success('Account created! Logging you in...');
+          // Auto-create user in users table
+          const user = data.user;
+          if (user) {
+            await supabase.from('users').insert({
+              id: user.id,
+              email: user.email,
+              full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+              role: role,
+              email_verified: true,
+              department: role === ROLES.STUDENT ? selectedDepartment : null,
+            });
+          }
+          
+          const roleRoutes: Record<string, string> = {
+            student: '/student/dashboard',
+            lecturer: '/lecturer/dashboard',
+            admin: '/admin/dashboard',
+          };
+          
+          toast.success('Account created! Redirecting...');
           setTimeout(() => {
-            window.location.href = '/';
+            window.location.href = roleRoutes[role] || '/';
           }, 500);
         } else {
           toast.success('Account created! Please check your email to confirm your account.');
@@ -124,9 +158,10 @@ export default function RegisterPage() {
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback`,
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback?next=/student/dashboard`,
           data: { 
             role: role,
+            full_name: email.split('@')[0],
             department_id: role === ROLES.STUDENT ? selectedDepartment : null,
             year: role === ROLES.STUDENT ? parseInt(selectedYear) : null,
             semester: role === ROLES.STUDENT ? parseInt(selectedSemester) : null

@@ -32,9 +32,8 @@ import {
   SpeakerWaveIcon,
   SpeakerXMarkIcon
 } from '@heroicons/react/24/outline';
-import FractalBackground from '@/components/ui/FractalBackground';
 import ThemeToggle from '@/components/ui/ThemeToggle';
-import SplashScreen from '@/components/ui/SplashScreen';
+import FractalBackground from '@/components/ui/FractalBackground';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -164,23 +163,28 @@ export default function DashboardLayout({ children, role }: DashboardLayoutProps
     setSoundEnabled(!soundEnabled);
   }, [soundEnabled, playError, playSuccess]);
 
-  if (isLoading || !user) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 relative overflow-hidden">
-        <FractalBackground className="pointer-events-none" />
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 relative z-10"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="text-center">
+          <p className="text-gray-600 dark:text-gray-400 mb-4">Unable to load session</p>
+          <a href="/login" className="text-primary-600 hover:text-primary-700">Sign in again</a>
+        </div>
       </div>
     );
   }
 
   return (
-    <>
-      <SplashScreen 
-        role={role} 
-        onComplete={() => setShowSplash(false)} 
-      />
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-        {/* Header */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      {/* Header */}
         <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 fixed top-0 left-0 right-0 z-50">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -336,6 +340,5 @@ export default function DashboardLayout({ children, role }: DashboardLayoutProps
         />
       )}
     </div>
-    </>
   );
 }

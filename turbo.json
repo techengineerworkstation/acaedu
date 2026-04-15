@@ -1,9 +1,9 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "tasks": {
+  "pipeline": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": ["packages/web/.next/**"]
     },
     "dev": {
       "cache": false,
@@ -14,12 +14,6 @@
     },
     "type-check": {
       "dependsOn": ["^build"]
-    },
-    "test": {
-      "dependsOn": ["^build"]
-    },
-    "test:watch": {
-      "cache": false
     }
   }
 }

@@ -4,16 +4,6 @@
   "installCommand": "npm install",
   "outputDirectory": ".next",
   "regions": ["iad1"],
-  "crons": [
-    {
-      "path": "/api/cron/process-emails",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/send-reminders",
-      "schedule": "*/15 * * * *"
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",

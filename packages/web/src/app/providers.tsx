@@ -6,7 +6,6 @@ import { Toaster } from 'react-hot-toast';
 import { SessionProvider } from '@/lib/supabase/session';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { CurrencyProvider } from '@/contexts/CurrencyContext';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -18,7 +17,7 @@ export function Providers({ children }: ProvidersProps) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000, // 1 minute
+            staleTime: 60 * 1000,
             refetchOnWindowFocus: false,
             retry: 1
           }
@@ -34,18 +33,17 @@ export function Providers({ children }: ProvidersProps) {
             {children}
           </CurrencyProvider>
         </ThemeProvider>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#363636',
+              color: '#fff'
+            }
+          }}
+        />
       </SessionProvider>
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: {
-            background: '#363636',
-            color: '#fff'
-          }
-        }}
-      />
-      <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );
 }

@@ -9,8 +9,7 @@ export default function RootPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (user) {
-      // Redirect logged-in users to their dashboard
+    if (user?.role) {
       const rolePath = {
         student: '/student/dashboard',
         lecturer: '/lecturer/dashboard',

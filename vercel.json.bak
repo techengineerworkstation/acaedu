@@ -1,0 +1,10 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "pnpm --filter @acadion/web build",
+  "devCommand": "pnpm --filter @acadion/web dev",
+  "installCommand": "pnpm install",
+  "regions": ["iad1"],
+  "github": {
+    "silent": true
+  }
+}
