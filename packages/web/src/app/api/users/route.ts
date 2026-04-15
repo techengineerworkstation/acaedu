@@ -111,6 +111,13 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminClient();
 
+    if (!admin) {
+      return NextResponse.json(
+        { success: false, error: 'Admin not available' },
+        { status: 503 }
+      );
+    }
+
     // 1. Create auth user
     const { data: authUser, error: authError } = await admin.auth.admin.createUser({
       email,

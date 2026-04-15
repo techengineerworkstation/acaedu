@@ -16,11 +16,6 @@ export async function POST(req: NextRequest) {
     const authResult = await requireAuth(req);
     if (!('user' in authResult)) return authResult;
 
-    const featureCheck = await requireFeature(authResult.user.id, 'ai_scheduler');
-    if (!featureCheck.allowed) {
-      return NextResponse.json({ success: false, error: featureCheck.error }, { status: 403 });
-    }
-
     const body = await req.json();
     const { action, video_id, text, content_type, lectureTitle, durationSeconds, language, concept, context, targetLanguage, questionCount } = body;
 
