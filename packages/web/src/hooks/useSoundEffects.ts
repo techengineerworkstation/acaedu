@@ -12,10 +12,15 @@ export function useSoundEffects(options: UseSoundOptions = {}) {
   const audioContextRef = useRef<AudioContext | null>(null);
 
   const getAudioContext = useCallback(() => {
+    if (typeof window === 'undefined') return null;
     if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      try {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      } catch {
+        return null;
+      }
     }
-    return audioContextRef.current;
+    return audioContextRef.current!;
   }, []);
 
   const playClick = useCallback(() => {
@@ -23,6 +28,7 @@ export function useSoundEffects(options: UseSoundOptions = {}) {
     
     try {
       const ctx = getAudioContext();
+      if (!ctx) return;
       const oscillator = ctx.createOscillator();
       const gainNode = ctx.createGain();
       
@@ -48,6 +54,7 @@ export function useSoundEffects(options: UseSoundOptions = {}) {
     
     try {
       const ctx = getAudioContext();
+      if (!ctx) return;
       const oscillator = ctx.createOscillator();
       const gainNode = ctx.createGain();
       
@@ -74,6 +81,7 @@ export function useSoundEffects(options: UseSoundOptions = {}) {
     
     try {
       const ctx = getAudioContext();
+      if (!ctx) return;
       const oscillator = ctx.createOscillator();
       const gainNode = ctx.createGain();
       
@@ -99,6 +107,7 @@ export function useSoundEffects(options: UseSoundOptions = {}) {
     
     try {
       const ctx = getAudioContext();
+      if (!ctx) return;
       const oscillator = ctx.createOscillator();
       const gainNode = ctx.createGain();
       
@@ -123,6 +132,7 @@ export function useSoundEffects(options: UseSoundOptions = {}) {
     
     try {
       const ctx = getAudioContext();
+      if (!ctx) return;
       const oscillator = ctx.createOscillator();
       const gainNode = ctx.createGain();
       
