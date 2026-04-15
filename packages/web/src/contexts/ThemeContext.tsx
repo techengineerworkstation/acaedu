@@ -85,20 +85,34 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Fetch settings from API
   const fetchSettings = useCallback(async () => {
     try {
-      const supabase = createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mpuhdybttdaxirinrcsp.supabase.co',
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wdWhkeWJ0dGRheGlyaW5yY3NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDUzNjQsImV4cCI6MjA5MDgyMTM2NH0.r5a0fJwurwyYaUbWxjJTK_-cBklbLLZIUv4WceEUCPM'
-      );
-
-      // First check localStorage for custom colors
+      // FIRST: Check localStorage for custom colors (highest priority)
       const storedCustom = localStorage.getItem('custom_colors');
       if (storedCustom) {
         const custom = JSON.parse(storedCustom);
         setCurrentColors(custom);
         applyThemeToDOM(custom);
+        localStorage.setItem('theme_preset', 'custom');
         setIsLoading(false);
         return;
       }
+
+      // SECOND: Check localStorage for preset
+      const storedPreset = localStorage.getItem('theme_preset');
+      if (storedPreset && storedPreset !== 'custom') {
+        const colors = THEME_PRESETS[storedPreset as keyof typeof THEME_PRESETS];
+        if (colors) {
+          setCurrentColors(colors);
+          applyThemeToDOM(colors);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // THIRD: Only try DB if nothing in localStorage
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mpuhdybttdaxirinrcsp.supabase.co',
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wdWhkeWJ0dGRheGlyaW5yY3NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDUzNjQsImV4cCI6MjA5MDgyMTM2NH0.r5a0fJwurwyYaUbWxjJTK_-cBklbLLZIUv4WceEUCPM'
+      );
 
       const { data, error } = await supabase
         .from('institution_settings')
@@ -106,16 +120,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (error || !data) {
-        // Try localStorage fallback
-        const storedPreset = localStorage.getItem('theme_preset') || 'turquoise';
-        const colors = THEME_PRESETS[storedPreset as keyof typeof THEME_PRESETS] || THEME_PRESETS.turquoise;
-        setCurrentColors(colors);
-        applyThemeToDOM(colors);
+        // Use localStorage preset or default
         setIsLoading(false);
         return;
       }
 
       setSettings(data);
+      
       // Use custom colors if set, otherwise use preset
       let colors;
       if (data.theme_preset === 'custom' && data.primary_color) {
@@ -128,23 +139,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           textPrimary: data.text_primary_color || '#1f2937',
           textSecondary: data.text_secondary_color || '#6b7280'
         };
+        // Save to localStorage for persistence
+        localStorage.setItem('custom_colors', JSON.stringify(colors));
+        localStorage.setItem('theme_preset', 'custom');
       } else {
-        // Try to get from presets, fallback to turquoise
         colors = THEME_PRESETS[data.theme_preset as keyof typeof THEME_PRESETS] || 
-                 (THEME_PRESETS as any)[data.theme_preset] || 
                  THEME_PRESETS.turquoise;
+        localStorage.setItem('theme_preset', data.theme_preset || 'turquoise');
       }
+      
       setCurrentColors(colors);
       applyThemeToDOM(colors);
-      // Save to localStorage
-      localStorage.setItem('theme_preset', data.theme_preset || 'turquoise');
     } catch (e) {
       console.error('Error fetching settings:', e);
-      // Load from localStorage on error
-      const storedPreset = localStorage.getItem('theme_preset') || 'turquoise';
-      const colors = THEME_PRESETS[storedPreset as keyof typeof THEME_PRESETS] || THEME_PRESETS.turquoise;
-      setCurrentColors(colors);
-      applyThemeToDOM(colors);
     } finally {
       setIsLoading(false);
     }
@@ -196,26 +203,50 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       return {};
     } catch (e: any) {
       console.error('Update settings failed:', e);
-      // Update locally even if DB fails
-      if (updates.theme_preset) {
+      // Update locally even if DB fails - ALWAYS save to localStorage
+      if (updates.theme_preset === 'custom' || updates.primary_color) {
+        // Save as custom
+        const customColors = {
+          primary: updates.primary_color || currentColors.primary,
+          secondary: updates.secondary_color || currentColors.secondary,
+          accent: updates.accent_color || currentColors.accent,
+          background: updates.background_color || currentColors.background,
+          surface: updates.surface_color || currentColors.surface,
+          textPrimary: updates.text_primary_color || currentColors.textPrimary,
+          textSecondary: updates.text_secondary_color || currentColors.textSecondary,
+        };
+        setCurrentColors(customColors);
+        applyThemeToDOM(customColors);
+        localStorage.setItem('theme_preset', 'custom');
+        localStorage.setItem('custom_colors', JSON.stringify(customColors));
+      } else if (updates.theme_preset) {
         const colors = THEME_PRESETS[updates.theme_preset as keyof typeof THEME_PRESETS] || THEME_PRESETS.turquoise;
         setCurrentColors(colors);
         applyThemeToDOM(colors);
         localStorage.setItem('theme_preset', updates.theme_preset);
-      }
-      if (updates.primary_color) {
-        setCurrentColors(prev => ({ ...prev, primary: updates.primary_color! }));
+        localStorage.removeItem('custom_colors');
       }
       return {};
     }
   };
 
   const setThemePreset = (preset: string) => {
-    const colors = THEME_PRESETS[preset] || THEME_PRESETS.turquoise;
+    let colors;
+    if (preset === 'custom') {
+      // Use current colors as custom
+      colors = currentColors;
+    } else {
+      colors = THEME_PRESETS[preset] || THEME_PRESETS.turquoise;
+    }
     setCurrentColors(colors);
     applyThemeToDOM(colors);
     // Save to localStorage immediately for persistence
     localStorage.setItem('theme_preset', preset);
+    if (preset === 'custom') {
+      localStorage.setItem('custom_colors', JSON.stringify(colors));
+    } else {
+      localStorage.removeItem('custom_colors');
+    }
     updateSettings({ theme_preset: preset });
   };
 
