@@ -103,30 +103,40 @@ CREATE POLICY "Creators can manage exams" ON public.exams FOR ALL USING (auth.ui
 -- =====================================================
 -- 5. GRADES TABLE
 -- =====================================================
-CREATE TABLE IF NOT EXISTS public.grades (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id TEXT NOT NULL,
-  assignment_id TEXT,
-  exam_id TEXT,
-  score INTEGER,
-  feedback TEXT,
-  graded_by TEXT,
-  graded_at TIMESTAMPTZ DEFAULT NOW(),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
 
+-- Add graded_by column if not exists
+ALTER TABLE public.grades ADD COLUMN IF NOT EXISTS graded_by TEXT;
+
+-- Add student_id column if not exists (for RLS policy)
+ALTER TABLE public.grades ADD COLUMN IF NOT EXISTS student_id TEXT;
+
+-- Populate student_id from existing user_id data if empty
+UPDATE public.grades SET student_id = user_id WHERE student_id IS NULL AND user_id IS NOT NULL;
+
+-- Drop existing policies
 DROP POLICY IF EXISTS "Users can view own grades" ON public.grades;
-CREATE POLICY "Users can view own grades" ON public.grades FOR SELECT USING (auth.uid()::text = user_id);
 DROP POLICY IF EXISTS "Lecturers can view grades" ON public.grades;
+DROP POLICY IF EXISTS "Lecturers can insert grades" ON public.grades;
+DROP POLICY IF EXISTS "Graders can update grades" ON public.grades;
+
+-- Ensure RLS is enabled
+ALTER TABLE public.grades ENABLE ROW LEVEL SECURITY;
+
+-- SELECT: Students can view only their own grades (uses student_id)
+CREATE POLICY "Users can view own grades" ON public.grades FOR SELECT USING (student_id = auth.uid()::text);
+
+-- SELECT: Lecturers/admin can view grades
 CREATE POLICY "Lecturers can view grades" ON public.grades FOR SELECT USING (
   EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid()::text AND users.role IN ('admin', 'lecturer'))
 );
-DROP POLICY IF EXISTS "Lecturers can insert grades" ON public.grades;
+
+-- INSERT: Lecturers/admins can insert grades
 CREATE POLICY "Lecturers can insert grades" ON public.grades FOR INSERT WITH CHECK (
   EXISTS (SELECT 1 FROM public.users WHERE users.id = auth.uid()::text AND users.role IN ('admin', 'lecturer'))
 );
-DROP POLICY IF EXISTS "Graders can update grades" ON public.grades;
-CREATE POLICY "Graders can update grades" ON public.grades FOR UPDATE USING (auth.uid()::text = graded_by);
+
+-- UPDATE: only the lecturer who created/graded can update
+CREATE POLICY "Graders can update grades" ON public.grades FOR UPDATE USING (graded_by = auth.uid()::text) WITH CHECK (graded_by = auth.uid()::text);
 
 -- =====================================================
 -- 6. MEETINGS TABLE

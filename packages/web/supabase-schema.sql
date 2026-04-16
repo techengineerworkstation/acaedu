@@ -539,7 +539,7 @@ DROP TABLE IF EXISTS public.grades CASCADE;
 
 CREATE TABLE public.grades (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id TEXT NOT NULL,
+  student_id TEXT NOT NULL,
   assignment_id TEXT,
   exam_id TEXT,
   score INTEGER,
@@ -549,7 +549,7 @@ CREATE TABLE public.grades (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_grades_user ON public.grades(user_id);
+CREATE INDEX idx_grades_student ON public.grades(student_id);
 CREATE INDEX idx_grades_assignment ON public.grades(assignment_id);
 CREATE INDEX idx_grades_exam ON public.grades(exam_id);
 
@@ -558,7 +558,7 @@ ALTER TABLE public.grades ENABLE ROW LEVEL SECURITY;
 -- SECURITY: Users can view their own grades
 DROP POLICY IF EXISTS "Users can view own grades" ON public.grades;
 CREATE POLICY "Users can view own grades" ON public.grades
-  FOR SELECT USING (auth.uid()::text = user_id);
+  FOR SELECT USING (auth.uid()::text = student_id);
 
 -- SECURITY: Lecturers can view student grades for their courses
 DROP POLICY IF EXISTS "Lecturers can view grades" ON public.grades;
