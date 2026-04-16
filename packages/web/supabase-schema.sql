@@ -983,6 +983,31 @@ DROP POLICY IF EXISTS "Users can view own features" ON public.feature_access;
 CREATE POLICY "Users can view own features" ON public.feature_access
   FOR SELECT USING (auth.uid()::text = user_id);
 
+-- Add indexes (IF NOT EXISTS to avoid duplicates)
+CREATE INDEX IF NOT EXISTS idx_videos_course ON public.lecture_videos(course_id);
+CREATE INDEX IF NOT EXISTS idx_materials_course ON public.materials(course_id);
+CREATE INDEX IF NOT EXISTS idx_materials_uploader ON public.materials(uploaded_by);
+CREATE INDEX IF NOT EXISTS idx_assignments_course ON public.assignments(course_id);
+CREATE INDEX IF NOT EXISTS idx_assignments_due ON public.assignments(due_date);
+CREATE INDEX IF NOT EXISTS idx_exams_course ON public.exams(course_id);
+CREATE INDEX IF NOT EXISTS idx_exams_date ON public.exams(exam_date);
+CREATE INDEX IF NOT EXISTS idx_grades_user ON public.grades(user_id);
+CREATE INDEX IF NOT EXISTS idx_grades_assignment ON public.grades(assignment_id);
+CREATE INDEX IF NOT EXISTS idx_grades_exam ON public.grades(exam_id);
+CREATE INDEX IF NOT EXISTS idx_meetings_course ON public.meetings(course_id);
+CREATE INDEX IF NOT EXISTS idx_meetings_host ON public.meetings(host_id);
+CREATE INDEX IF NOT EXISTS idx_meetings_scheduled ON public.meetings(scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_schedules_course ON public.schedules(course_id);
+CREATE INDEX IF NOT EXISTS idx_schedules_venue ON public.schedules(venue_id);
+CREATE INDEX IF NOT EXISTS idx_events_start ON public.events(start_date);
+CREATE INDEX IF NOT EXISTS idx_announcements_published ON public.announcements(is_published);
+CREATE INDEX IF NOT EXISTS idx_payments_user ON public.payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_reference ON public.payments(reference);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON public.billing_subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_outlines_course ON public.course_outlines(course_id);
+CREATE INDEX IF NOT EXISTS idx_search_user ON public.search_queries(user_id);
+CREATE INDEX IF NOT EXISTS idx_crm_user ON public.crm_sync(user_id);
+
 -- =====================================================
 -- SECURITY AUDIT CHECK
 -- =====================================================
