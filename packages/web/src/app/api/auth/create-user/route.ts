@@ -20,12 +20,16 @@ export async function POST(req: NextRequest) {
     const admin = createAdminClient();
 
     // Check if user already exists in users table
-    const { data: existingUser } = await admin
+    const { data: existingUser, error: checkError } = await admin
       .from('users')
-      .select('*')
+      .select('id')
       .eq('email', email)
-      .single();
+      .maybeSingle();
 
+    // If error or user exists
+    if (checkError) {
+      console.error('Check user error:', checkError);
+    }
     if (existingUser) {
       return NextResponse.json(
         { error: 'User with this email already exists' },
