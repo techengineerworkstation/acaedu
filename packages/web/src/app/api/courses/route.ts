@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Sort by course code
-    query = query.order('course_code', { ascending: true });
+    query = query.order('code', { ascending: true });
 
     const { data, error } = await query;
 
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const {
-      course_code,
+      code: course_code,
       title,
       description,
       credits,
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
 
     if (!course_code || !title) {
       return NextResponse.json(
-        { success: false, error: 'course_code and title required' },
+        { success: false, error: 'code and title required' },
         { status: 400 }
       );
     }
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
     const { data, error } = await supabase
       .from('courses')
       .insert({
-        course_code,
+        code: course_code,
         title,
         description,
         credits: credits || 3,
