@@ -98,9 +98,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateSettings = async () => {
-    // No-op for now - localStorage only
-    return {};
+  const updateSettings = async (updates: any) => {
+    // Save to localStorage - no-op for now
+    return { error: undefined };
   };
 
   return (

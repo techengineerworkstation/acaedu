@@ -37,8 +37,8 @@ export default function AdminSettingsPage() {
   });
 
   const handleBrandingSave = async () => {
-    const result = await updateSettings(branding);
-    if (result.error) {
+    const result: any = await updateSettings(branding);
+    if (result?.error) {
       toast.error('Failed to save branding: ' + result.error);
     } else {
       toast.success('Branding updated successfully');

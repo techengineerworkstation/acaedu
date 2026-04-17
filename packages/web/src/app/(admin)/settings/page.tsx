@@ -127,8 +127,8 @@ const { data: { session } } = await typedSupabase.auth.getSession();
     e.preventDefault();
     setIsLoading(true);
     try {
-      const result = await updateSettings(formData);
-      if (result.error) {
+      const result: any = await updateSettings(formData);
+      if (result?.error) {
         toast.error(`Failed to save: ${result.error}`);
       } else {
         toast.success('Settings saved successfully!');
