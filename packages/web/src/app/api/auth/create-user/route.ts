@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { createClient } from '@/lib/supabase/server';
 
 /**
  * Create a new user (admin/lecturer creation from admin panel)
@@ -9,7 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, full_name, role, employee_id, department, phone, password } = body;
+    const { email, full_name, role, employee_id, department, phone } = body;
 
     if (!email || !full_name) {
       return NextResponse.json(
@@ -20,7 +19,7 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminClient();
 
-    // Check if user already exists
+    // Check if user already exists in users table
     const { data: existingUser } = await admin
       .from('users')
       .select('*')
@@ -34,33 +33,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate a random password if not provided
-    const userPassword = password || Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
-    
-    // Create user in Supabase Auth
-    const { data: authData, error: authError } = await admin.auth.admin.createUser({
-      email,
-      email_confirm: true,
-      password: userPassword,
-      user_metadata: {
-        full_name,
-        role: role || 'student',
-        department,
-        employee_id
-      }
-    });
+    // Generate a random ID
+    const userId = crypto.randomUUID();
 
-    if (authError) {
-      console.error('Auth user creation error:', authError);
-      return NextResponse.json(
-        { error: 'Failed to create user: ' + authError.message },
-        { status: 400 }
-      );
-    }
-
-    const userId = authData.user.id;
-
-    // Create user record in users table
+    // Create user directly in users table (skip auth for now)
     const newUser = {
       id: userId,
       email,
@@ -81,18 +57,8 @@ export async function POST(req: NextRequest) {
 
     if (insertError) {
       console.error('User insert error:', insertError);
-      // Try to fetch existing
-      const { data: existing } = await admin
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (existing) {
-        return NextResponse.json({ user: existing, success: true });
-      }
       return NextResponse.json(
-        { error: 'Failed to create user record', details: insertError.message },
+        { error: 'Failed to create user: ' + insertError.message },
         { status: 500 }
       );
     }
@@ -100,12 +66,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       user: insertedUser,
-      message: `User created successfully. ${role === 'lecturer' ? 'They can now log in as a lecturer.' : ''}`
+      message: `User created successfully as ${role || 'student'}.`
     });
   } catch (error) {
     console.error('API create-user error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error: ' + String(error) },
       { status: 500 }
     );
   }
