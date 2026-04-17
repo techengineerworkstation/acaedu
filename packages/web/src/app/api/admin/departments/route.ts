@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { requireAuth, requireRole } from '@/lib/auth';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { requireRole } from '@/lib/auth';
 
 /**
  * GET /api/admin/departments
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
       return authResult;
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { data, error } = await supabase
       .from('departments')
       .select('id, name, code')

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { requireAuth, requireRole } from '@/lib/auth';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { requireRole } from '@/lib/auth';
 
 /**
  * GET /api/admin/users
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     let query = supabase
       .from('users')
       .select('*')

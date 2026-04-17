@@ -19,13 +19,19 @@ export default function AdminCoursesPage() {
   const { data: courses, isLoading, error } = useQuery({ 
     queryKey: ['courses', 'admin'], 
     queryFn: async () => { 
-      const r = await fetch('/api/courses'); 
+      const r = await fetch('/api/admin/courses'); 
       const json = await r.json();
       console.log('Courses API response:', json);
       if (!json.success) throw new Error(json.error);
       return json;
     }
   });
+
+  const { data: departments } = useQuery({ queryKey: ['departments'], queryFn: async () => { const r = await fetch('/api/admin/departments'); return r.json(); } });
+  const { data: lecturers } = useQuery({ queryKey: ['lecturers'], queryFn: async () => { const r = await fetch('/api/admin/users?role=lecturer'); return r.json(); } });
+
+  const getDepartmentName = (id: string) => departments?.data?.find((d: any) => d.id === id)?.name || '-';
+  const getLecturerName = (id: string) => lecturers?.data?.find((l: any) => l.id === id)?.full_name || 'TBA';
 
   const courseList = courses?.data || [];
   const { data: lecturers } = useQuery({ queryKey: ['users', 'lecturers'], queryFn: async () => { const r = await fetch('/api/users?role=lecturer'); return r.json(); } });
@@ -48,8 +54,8 @@ export default function AdminCoursesPage() {
           columns={[
             { key: 'code', header: 'Code', render: (c: any) => <span className="font-medium">{c.code || c.course_code}</span> },
             { key: 'title', header: 'Title', render: (c: any) => c.title },
-            { key: 'dept', header: 'Department', render: (c: any) => c.department_id || '-' },
-            { key: 'lecturer', header: 'Lecturer', render: (c: any) => c.lecturer_id || 'TBA' },
+            { key: 'dept', header: 'Department', render: (c: any) => getDepartmentName(c.department_id) },
+            { key: 'lecturer', header: 'Lecturer', render: (c: any) => getLecturerName(c.lecturer_id) },
             { key: 'enrolled', header: 'Enrolled', render: (c: any) => `${c.enrolled_count}/${c.capacity}` },
             { key: 'credits', header: 'Credits', render: (c: any) => c.credits },
             { key: 'status', header: 'Status', render: (c: any) => <Badge variant={c.is_active ? 'success' : 'default'}>{c.is_active ? 'Active' : 'Inactive'}</Badge> },
