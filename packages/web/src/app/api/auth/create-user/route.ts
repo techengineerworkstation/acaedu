@@ -1,62 +1,107 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { createClient } from '@/lib/supabase/server';
 
 /**
- * API endpoint to create a user in the custom users table
- * Called by the frontend SessionProvider when a user exists in auth but not in users table
- * Uses admin client to bypass RLS
+ * Create a new user (admin/lecturer creation from admin panel)
+ * POST /api/auth/create-user
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { userId, email, role, fullName, avatarUrl } = body;
+    const { email, full_name, role, employee_id, department, phone, password } = body;
 
-    if (!userId || !email) {
+    if (!email || !full_name) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Missing required fields: email and full_name are required' },
         { status: 400 }
       );
     }
 
     const admin = createAdminClient();
 
+    // Check if user already exists
+    const { data: existingUser } = await admin
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'User with this email already exists' },
+        { status: 400 }
+      );
+    }
+
+    // Generate a random password if not provided
+    const userPassword = password || Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+    
+    // Create user in Supabase Auth
+    const { data: authData, error: authError } = await admin.auth.admin.createUser({
+      email,
+      email_confirm: true,
+      password: userPassword,
+      user_metadata: {
+        full_name,
+        role: role || 'student',
+        department,
+        employee_id
+      }
+    });
+
+    if (authError) {
+      console.error('Auth user creation error:', authError);
+      return NextResponse.json(
+        { error: 'Failed to create user: ' + authError.message },
+        { status: 400 }
+      );
+    }
+
+    const userId = authData.user.id;
+
+    // Create user record in users table
     const newUser = {
       id: userId,
-      email: email,
-      full_name: fullName || email.split('@')[0] || 'User',
-      role: role || null,
-      department: null,
-      email_verified: false,
-      avatar_url: avatarUrl || null,
-      student_id: null,
-      employee_id: null,
-      // created_at will be set by DB default on insert, preserved on upsert
+      email,
+      full_name,
+      role: role || 'student',
+      department: department || null,
+      employee_id: employee_id || null,
+      phone: phone || null,
+      is_active: true,
+      avatar_url: null
     };
 
-    const { data: upsertedUser, error: upsertError } = await admin
+    const { data: insertedUser, error: insertError } = await admin
       .from('users')
-      .upsert(newUser, { onConflict: 'id' })
+      .insert(newUser)
       .select()
       .single();
 
-    if (upsertError) {
-      console.error('API create-user upsert failed:', upsertError);
-      // Even if upsert fails (e.g., email conflict), try to fetch existing user by ID
-      const { data: existingUser } = await admin
+    if (insertError) {
+      console.error('User insert error:', insertError);
+      // Try to fetch existing
+      const { data: existing } = await admin
         .from('users')
         .select('*')
         .eq('id', userId)
         .single();
-      if (existingUser) {
-        return NextResponse.json({ user: existingUser });
+      
+      if (existing) {
+        return NextResponse.json({ user: existing, success: true });
       }
       return NextResponse.json(
-        { error: 'Failed to create or find user', details: upsertError.message },
+        { error: 'Failed to create user record', details: insertError.message },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ user: upsertedUser });
+    return NextResponse.json({ 
+      success: true, 
+      user: insertedUser,
+      message: `User created successfully. ${role === 'lecturer' ? 'They can now log in as a lecturer.' : ''}`
+    });
   } catch (error) {
     console.error('API create-user error:', error);
     return NextResponse.json(
