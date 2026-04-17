@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAuth, requireRole } from '@/lib/auth';
 
 /**
@@ -21,11 +21,11 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     let query = supabase
       .from('courses')
-      .select('*, department:departments (id, name, code), lecturer:users!courses_lecturer_id_fkey (id, full_name, email)')
-      .order('course_code', { ascending: true })
+      .select('*')
+      .order('code', { ascending: true })
       .range(offset, offset + limit - 1);
 
     // Apply filters

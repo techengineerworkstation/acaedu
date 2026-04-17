@@ -46,10 +46,10 @@ export default function AdminCoursesPage() {
 
         <DataTable
           columns={[
-            { key: 'code', header: 'Code', render: (c: any) => <span className="font-medium">{c.code}</span> },
+            { key: 'code', header: 'Code', render: (c: any) => <span className="font-medium">{c.code || c.course_code}</span> },
             { key: 'title', header: 'Title', render: (c: any) => c.title },
-            { key: 'dept', header: 'Department', render: (c: any) => c.department?.name || '-' },
-            { key: 'lecturer', header: 'Lecturer', render: (c: any) => c.lecturer?.full_name || 'TBA' },
+            { key: 'dept', header: 'Department', render: (c: any) => c.department_id || '-' },
+            { key: 'lecturer', header: 'Lecturer', render: (c: any) => c.lecturer_id || 'TBA' },
             { key: 'enrolled', header: 'Enrolled', render: (c: any) => `${c.enrolled_count}/${c.capacity}` },
             { key: 'credits', header: 'Credits', render: (c: any) => c.credits },
             { key: 'status', header: 'Status', render: (c: any) => <Badge variant={c.is_active ? 'success' : 'default'}>{c.is_active ? 'Active' : 'Inactive'}</Badge> },
