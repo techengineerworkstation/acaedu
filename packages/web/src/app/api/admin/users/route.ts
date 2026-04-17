@@ -23,11 +23,7 @@ export async function GET(req: NextRequest) {
     const supabase = await createClient();
     let query = supabase
       .from('users')
-      .select(`
-        *,
-        department:departments (*),
-        institution:institutions (*)
-      `)
+      .select('*')
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
