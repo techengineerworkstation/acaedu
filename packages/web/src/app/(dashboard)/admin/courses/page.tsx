@@ -14,7 +14,7 @@ import { PlusIcon } from '@heroicons/react/24/outline';
 export default function AdminCoursesPage() {
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ course_code: '', title: '', description: '', summary: '', color: '#0ea5e9', credits: 3, capacity: 30, department_id: '', lecturer_id: '' });
+  const [form, setForm] = useState({ code: '', title: '', description: '', summary: '', color: '#0ea5e9', credits: 3, capacity: 30, department_id: '', lecturer_id: '' });
 
   const { data: courses, isLoading } = useQuery({ queryKey: ['courses', 'admin'], queryFn: async () => { const r = await fetch('/api/courses'); return r.json(); } });
   const { data: lecturers } = useQuery({ queryKey: ['users', 'lecturers'], queryFn: async () => { const r = await fetch('/api/users?role=lecturer'); return r.json(); } });
@@ -35,7 +35,7 @@ export default function AdminCoursesPage() {
 
         <DataTable
           columns={[
-            { key: 'code', header: 'Code', render: (c: any) => <span className="font-medium">{c.course_code}</span> },
+            { key: 'code', header: 'Code', render: (c: any) => <span className="font-medium">{c.code}</span> },
             { key: 'title', header: 'Title', render: (c: any) => c.title },
             { key: 'dept', header: 'Department', render: (c: any) => c.department?.name || '-' },
             { key: 'lecturer', header: 'Lecturer', render: (c: any) => c.lecturer?.full_name || 'TBA' },
@@ -50,7 +50,7 @@ export default function AdminCoursesPage() {
         <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Create Course">
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <Input label="Course Code" value={form.course_code} onChange={(e) => setForm({ ...form, course_code: e.target.value })} placeholder="CS101" />
+              <Input label="Course Code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="CS101" />
               <Input label="Credits" type="number" value={form.credits.toString()} onChange={(e) => setForm({ ...form, credits: parseInt(e.target.value) })} />
             </div>
             <Input label="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
