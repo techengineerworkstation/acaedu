@@ -18,54 +18,65 @@ export async function POST(req: NextRequest) {
     }
 
     const admin = createAdminClient();
+    const normalizedEmail = email.toLowerCase().trim();
 
-    // Generate a unique ID
-    const userId = crypto.randomUUID();
+    // Check if user already exists by email
+    const { data: existingUser } = await admin
+      .from('users')
+      .select('id, email')
+      .eq('email', normalizedEmail)
+      .limit(1);
 
-    // Try to create user in Supabase Auth first
+    if (existingUser && existingUser.length > 0) {
+      return NextResponse.json(
+        { error: 'User with this email already exists' },
+        { status: 400 }
+      );
+    }
+
+    // Generate a completely new unique ID
+    const userId = crypto.randomUUID() + '-' + Date.now();
+
+    // Try to create user in Supabase Auth
     let authUserId = userId;
     try {
-      const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8) + 'A1!';
+      const tempPassword = 'Temp' + Math.random().toString(36).slice(-6) + '123!';
       const { data: authData, error: authError } = await admin.auth.admin.createUser({
-        email,
+        email: normalizedEmail,
         password: tempPassword,
         email_confirm: true,
         user_metadata: {
           full_name,
-          role: role || 'student',
-          department,
-          employee_id
+          role: role || 'student'
         }
       });
 
-      if (authError) {
-        console.log('Auth creation failed, will create without auth:', authError.message);
-        authUserId = userId;
-      } else if (authData?.user?.id) {
+      if (authData?.user?.id) {
         authUserId = authData.user.id;
       }
-    } catch (authErr: any) {
-      console.log('Auth exception, using generated ID:', authErr.message);
-      authUserId = userId;
+    } catch (e) {
+      console.log('Auth creation skipped, using generated ID');
     }
 
-    // Create user in users table
-    const newUser: any = {
+    // Create user in users table with upsert to handle conflicts
+    const newUser = {
       id: authUserId,
-      email: email.toLowerCase().trim(),
+      email: normalizedEmail,
       full_name: full_name.trim(),
       role: role || 'student',
-      is_active: true
+      is_active: true,
+      ...(department ? { department } : {}),
+      ...(employee_id ? { employee_id } : {}),
+      ...(phone ? { phone } : {})
     };
 
-    // Only add optional fields if provided
-    if (department) newUser.department = department;
-    if (employee_id) newUser.employee_id = employee_id;
-    if (phone) newUser.phone = phone;
-
+    // Use upsert instead of insert to handle duplicates
     const { data: insertedUser, error: insertError } = await admin
       .from('users')
-      .insert(newUser)
+      .upsert(newUser, { 
+        onConflict: 'email',
+        ignoreDuplicates: false 
+      })
       .select()
       .single();
 
