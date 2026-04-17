@@ -91,20 +91,9 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const {
-      code: course_code,
-      title,
-      description,
-      credits,
-      department_id,
-      capacity,
-      is_active,
-      semester,
-      academic_year,
-      syllabus_url
-    } = body;
+    const { code, title, description, credits, department_id, capacity, is_active, semester, academic_year, syllabus_url } = body;
 
-    if (!course_code || !title) {
+    if (!code || !title) {
       return NextResponse.json(
         { success: false, error: 'code and title required' },
         { status: 400 }
@@ -121,7 +110,7 @@ export async function POST(req: NextRequest) {
     const { data, error } = await supabase
       .from('courses')
       .insert({
-        code: course_code,
+        code,
         title,
         description,
         credits: credits || 3,
