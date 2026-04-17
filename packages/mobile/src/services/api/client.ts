@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_BASE_URL, STORAGE_KEYS_Mobile } from '../../constants';
+import { API_BASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY, STORAGE_KEYS_Mobile } from '../../constants';
 
 class ApiClient {
   private baseUrl: string;
@@ -12,7 +12,8 @@ class ApiClient {
     const token = await AsyncStorage.getItem(STORAGE_KEYS_Mobile.AUTH_TOKEN);
     return {
       'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {})
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': token ? `Bearer ${token}` : `Bearer ${SUPABASE_ANON_KEY}`
     };
   }
 

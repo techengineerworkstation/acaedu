@@ -77,7 +77,7 @@ export default {
         projectId: 'acadion-mobile'
       },
       // API configuration
-      apiUrl: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000'
+      apiUrl: process.env.EXPO_PUBLIC_API_URL || 'https://acaedu-web.vercel.app'
     }
   }
 };

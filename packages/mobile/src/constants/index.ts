@@ -75,7 +75,9 @@ export const DEEP_LINK = {
 };
 
 // API
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || process.env.NEXT_PUBLIC_SUPABASE_URL?.replace('/rest', '') || 'https://mpuhdybttdaxirinrcsp.supabase.co';
+export const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mpuhdybttdaxirinrcsp.supabase.co';
+export const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1wdWhkeWJ0dGRheGlyaW5yY3NwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNDUzNjQsImV4cCI6MjA5MDgyMTM2NH0.r5a0fJwurwyYaUbWxjJTK_-cBklbLLZIUv4WceEUCPM';
 
 // Storage keys (AsyncStorage)
 export const STORAGE_KEYS_Mobile = {

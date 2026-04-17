@@ -22,11 +22,7 @@ export async function GET(req: NextRequest) {
     const supabase = await createClient();
     let query = supabase
       .from('courses')
-      .select(`
-        *,
-        department:departments (*),
-        lecturer:users!courses_lecturer_id_fkey (*)
-      `);
+      .select('*, department:departments (id, name, code), lecturer:users!courses_lecturer_id_fkey (id, full_name, email)');
 
     // Filter by role
     if (user.role === 'student') {
