@@ -9,14 +9,8 @@ import { requireAuth, requireRole } from '@/lib/auth';
  */
 export async function GET(req: NextRequest) {
   try {
-    const authResult = await requireAuth(req);
-    if (!('user' in authResult)) {
-      return authResult;
-    }
-
-    // Use admin client to bypass RLS
+    // Use admin client to bypass RLS and get all courses
     const supabase = createAdminClient();
-    const user = authResult.user;
     const { searchParams } = new URL(req.url);
     const department = searchParams.get('department');
     const isActive = searchParams.get('is_active');
@@ -24,33 +18,15 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from('courses')
-      .select('*, department:departments (id, name, code), lecturer:users!courses_lecturer_id_fkey (id, full_name, email)');
+      .select('*, department:departments (id, name, code), lecturer:users!courses_lecturer_id_fkey (id, full_name, email)')
+      .order('code', { ascending: true });
 
-    // Filter by role
-    if (user.role === 'student') {
-      // Students see active courses they're enrolled in or all active courses
-      const { data: enrollments } = await supabase
-        .from('enrollments')
-        .select('course_id')
-        .eq('student_id', user.id)
-        .eq('status', 'active');
-
-      const enrolledCourseIds = enrollments?.map((e: any) => e.course_id) || [];
-      if (enrolledCourseIds.length > 0) {
-        query = query.or(`is_active.eq.true,id.in.(${enrolledCourseIds.join(',')})`);
-      } else {
-        query = query.eq('is_active', true);
-      }
-    } else if (user.role === 'lecturer') {
-      // Lecturers see courses they teach
-      query = query.or(`lecturer_id.eq.${user.id},department.eq.${user.department || ''}`);
-    }
-
+    // Apply filters
     // Apply filters
     if (department) {
       query = query.eq('department_id', department);
     }
-    if (isActive !== null) {
+    if (isActive !== null && isActive !== '') {
       query = query.eq('is_active', isActive === 'true');
     }
     if (lecturerId) {
