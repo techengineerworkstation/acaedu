@@ -16,7 +16,18 @@ export default function AdminCoursesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ code: '', title: '', description: '', summary: '', color: '#0ea5e9', credits: 3, capacity: 30, department_id: '', lecturer_id: '' });
 
-  const { data: courses, isLoading } = useQuery({ queryKey: ['courses', 'admin'], queryFn: async () => { const r = await fetch('/api/courses'); return r.json(); } });
+  const { data: courses, isLoading, error } = useQuery({ 
+    queryKey: ['courses', 'admin'], 
+    queryFn: async () => { 
+      const r = await fetch('/api/courses'); 
+      const json = await r.json();
+      console.log('Courses API response:', json);
+      if (!json.success) throw new Error(json.error);
+      return json;
+    }
+  });
+
+  const courseList = courses?.data || [];
   const { data: lecturers } = useQuery({ queryKey: ['users', 'lecturers'], queryFn: async () => { const r = await fetch('/api/users?role=lecturer'); return r.json(); } });
   const { data: departments } = useQuery({ queryKey: ['departments'], queryFn: async () => { const r = await fetch('/api/courses?department=all'); return r.json(); } });
 
@@ -43,7 +54,7 @@ export default function AdminCoursesPage() {
             { key: 'credits', header: 'Credits', render: (c: any) => c.credits },
             { key: 'status', header: 'Status', render: (c: any) => <Badge variant={c.is_active ? 'success' : 'default'}>{c.is_active ? 'Active' : 'Inactive'}</Badge> },
           ]}
-          data={courses?.data || []}
+          data={courseList}
           isLoading={isLoading}
         />
 
