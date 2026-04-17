@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from('courses')
-      .select('*, department:departments (id, name, code), lecturer:users!courses_lecturer_id_fkey (id, full_name, email)')
+      .select('*')
       .order('code', { ascending: true });
 
     // Apply filters
