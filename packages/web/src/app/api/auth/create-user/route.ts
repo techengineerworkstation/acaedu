@@ -72,17 +72,21 @@ export async function POST(req: NextRequest) {
     }
 
     // Now create user in users table
-    const newUser = {
+    const newUser: any = {
       id: authUserId,
       email,
       full_name,
       role: role || 'student',
       department: department || null,
       employee_id: employee_id || null,
-      phone: phone || null,
       is_active: true,
       avatar_url: null
     };
+
+    // Only add phone if column exists (avoid schema cache error)
+    if (phone) {
+      newUser.phone = phone;
+    }
 
     const { data: insertedUser, error: insertError } = await admin
       .from('users')

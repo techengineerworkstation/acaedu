@@ -336,6 +336,7 @@ CREATE TABLE public.users (
   avatar_url TEXT,
   student_id TEXT,
   employee_id TEXT,
+  phone TEXT,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
