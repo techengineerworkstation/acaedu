@@ -24,13 +24,7 @@ export async function GET(req: NextRequest) {
     const supabase = await createClient();
     let query = supabase
       .from('courses')
-      .select(`
-        *,
-        department:departments (*),
-        lecturer:users!courses_lecturer_id_fkey (
-          id, full_name, email, department
-        )
-      `)
+      .select('*, department:departments (id, name, code), lecturer:users!courses_lecturer_id_fkey (id, full_name, email)')
       .order('course_code', { ascending: true })
       .range(offset, offset + limit - 1);
 

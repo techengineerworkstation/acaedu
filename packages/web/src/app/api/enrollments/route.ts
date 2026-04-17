@@ -15,11 +15,7 @@ export async function GET(req: NextRequest) {
     const supabase = await createClient();
     let query = supabase
       .from('enrollments')
-      .select(`
-        *,
-        course:courses (*, department:departments (*), lecturer:users!courses_lecturer_id_fkey (*)),
-        student:users!enrollments_student_id_fkey (*)
-      `)
+      .select('*, course:courses (id, code, title, department:departments (id, name, code), lecturer:users!courses_lecturer_id_fkey (id, full_name, email)), student:users!enrollments_student_id_fkey (id, full_name, email)')
       .order('enrolled_at', { ascending: false });
 
     if (authResult.user.role === 'student') {
