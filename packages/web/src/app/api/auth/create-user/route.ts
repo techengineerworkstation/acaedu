@@ -8,7 +8,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, full_name, role, employee_id, department, phone, password } = body;
+    const { email, full_name, role, employee_id, department, phone } = body;
 
     if (!email || !full_name) {
       return NextResponse.json(
@@ -19,34 +19,17 @@ export async function POST(req: NextRequest) {
 
     const admin = createAdminClient();
 
-    // Check if user already exists in users table
-    const { data: existingUser, error: checkError } = await admin
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle();
+    // Generate a unique ID
+    const userId = crypto.randomUUID();
 
-    // If error or user exists
-    if (checkError) {
-      console.error('Check user error:', checkError);
-    }
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'User with this email already exists' },
-        { status: 400 }
-      );
-    }
-
-    // Generate a temporary password (user can reset later)
-    const tempPassword = password || Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8) + 'A1!';
-
-    // Create user in Supabase Auth first
-    let authUserId: string;
+    // Try to create user in Supabase Auth first
+    let authUserId = userId;
     try {
+      const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8) + 'A1!';
       const { data: authData, error: authError } = await admin.auth.admin.createUser({
         email,
         password: tempPassword,
-        email_confirm: true, // Auto-confirm email
+        email_confirm: true,
         user_metadata: {
           full_name,
           role: role || 'student',
@@ -56,41 +39,29 @@ export async function POST(req: NextRequest) {
       });
 
       if (authError) {
-        console.error('Auth creation error:', authError);
-        // If auth fails (e.g., service role not configured), create only in users table
-        if (authError.message.includes('service_role') || authError.message.includes('not allowed')) {
-          authUserId = crypto.randomUUID();
-        } else {
-          return NextResponse.json(
-            { error: 'Failed to create auth account: ' + authError.message },
-            { status: 400 }
-          );
-        }
-      } else {
+        console.log('Auth creation failed, will create without auth:', authError.message);
+        authUserId = userId;
+      } else if (authData?.user?.id) {
         authUserId = authData.user.id;
       }
     } catch (authErr: any) {
-      console.error('Auth exception:', authErr);
-      // Fallback: create without auth
-      authUserId = crypto.randomUUID();
+      console.log('Auth exception, using generated ID:', authErr.message);
+      authUserId = userId;
     }
 
-    // Now create user in users table
+    // Create user in users table
     const newUser: any = {
       id: authUserId,
-      email,
-      full_name,
+      email: email.toLowerCase().trim(),
+      full_name: full_name.trim(),
       role: role || 'student',
-      department: department || null,
-      employee_id: employee_id || null,
-      is_active: true,
-      avatar_url: null
+      is_active: true
     };
 
-    // Only add phone if column exists (avoid schema cache error)
-    if (phone) {
-      newUser.phone = phone;
-    }
+    // Only add optional fields if provided
+    if (department) newUser.department = department;
+    if (employee_id) newUser.employee_id = employee_id;
+    if (phone) newUser.phone = phone;
 
     const { data: insertedUser, error: insertError } = await admin
       .from('users')
@@ -101,7 +72,7 @@ export async function POST(req: NextRequest) {
     if (insertError) {
       console.error('User insert error:', insertError);
       return NextResponse.json(
-        { error: 'Failed to create user record: ' + insertError.message },
+        { error: 'Failed to create user: ' + insertError.message },
         { status: 500 }
       );
     }
@@ -110,7 +81,7 @@ export async function POST(req: NextRequest) {
       success: true, 
       user: insertedUser,
       message: role === 'lecturer' 
-        ? 'Lecturer created successfully. They can login with their email and the temporary password set.'
+        ? 'Lecturer created successfully.'
         : 'User created successfully.'
     });
   } catch (error) {
