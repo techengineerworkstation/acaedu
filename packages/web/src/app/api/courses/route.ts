@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { requireAuth, requireRole } from '@/lib/auth';
 
 /**
@@ -13,13 +14,14 @@ export async function GET(req: NextRequest) {
       return authResult;
     }
 
+    // Use admin client to bypass RLS
+    const supabase = createAdminClient();
     const user = authResult.user;
     const { searchParams } = new URL(req.url);
     const department = searchParams.get('department');
     const isActive = searchParams.get('is_active');
     const lecturerId = searchParams.get('lecturer_id');
 
-    const supabase = await createClient();
     let query = supabase
       .from('courses')
       .select('*, department:departments (id, name, code), lecturer:users!courses_lecturer_id_fkey (id, full_name, email)');
@@ -34,15 +36,15 @@ export async function GET(req: NextRequest) {
         .eq('status', 'active');
 
       const enrolledCourseIds = enrollments?.map((e: any) => e.course_id) || [];
-
-      query = query.or(
-        `is_active.eq.true,id.in.(${enrolledCourseIds.join(',')})`
-      );
+      if (enrolledCourseIds.length > 0) {
+        query = query.or(`is_active.eq.true,id.in.(${enrolledCourseIds.join(',')})`);
+      } else {
+        query = query.eq('is_active', true);
+      }
     } else if (user.role === 'lecturer') {
       // Lecturers see courses they teach
       query = query.or(`lecturer_id.eq.${user.id},department.eq.${user.department || ''}`);
     }
-    // Admin sees all
 
     // Apply filters
     if (department) {
@@ -109,7 +111,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // If lecturer, set themselves as lecturer unless admin sets explicit
     const lecturer_id = authResult.user.role === 'lecturer'
@@ -138,7 +140,7 @@ export async function POST(req: NextRequest) {
       if (error.code === '23505') {
         return NextResponse.json(
           { success: false, error: 'Course code already exists' },
-          { status: 409 }
+          { status: 400 }
         );
       }
       return NextResponse.json(
@@ -149,7 +151,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true, data }, { status: 201 });
   } catch (error) {
-    console.error('Course create error:', error);
+    console.error('Course creation error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to create course' },
       { status: 500 }
