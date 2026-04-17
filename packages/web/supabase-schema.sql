@@ -245,14 +245,17 @@ DROP TABLE IF EXISTS public.courses CASCADE;
 
 CREATE TABLE public.courses (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  code TEXT NOT NULL,
+  course_code TEXT NOT NULL,
   title TEXT NOT NULL,
   description TEXT,
+  summary TEXT,
+  color TEXT DEFAULT '#0ea5e9',
   department_id TEXT,
   lecturer_id TEXT,
   credits INTEGER DEFAULT 3,
   semester INTEGER DEFAULT 1,
   year INTEGER DEFAULT 1,
+  capacity INTEGER DEFAULT 30,
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
