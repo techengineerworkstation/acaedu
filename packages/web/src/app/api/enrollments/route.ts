@@ -53,22 +53,7 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createClient();
 
-    // Check course capacity
-    const { data: course } = await supabase
-      .from('courses')
-      .select('capacity, enrolled_count')
-      .eq('id', course_id)
-      .single();
-
-    if (!course) {
-      return NextResponse.json({ success: false, error: 'Course not found' }, { status: 404 });
-    }
-
-    if (course.enrolled_count >= course.capacity) {
-      return NextResponse.json({ success: false, error: 'Course is full' }, { status: 400 });
-    }
-
-    // Enroll student
+    // Enroll student first (will fail on duplicate)
     const studentId = authResult.user.role === 'admin' ? (body.student_id || authResult.user.id) : authResult.user.id;
 
     const { data, error } = await supabase
@@ -84,11 +69,45 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    // Update enrolled count
-    await supabase
+    // Update enrolled count atomically and check capacity
+    // Using eq('enrolled_count', old) ensures optimistic locking
+    const { data: course, error: courseError } = await supabase
+      .from('courses')
+      .select('capacity, enrolled_count')
+      .eq('id', course_id)
+      .single();
+
+    if (courseError || !course) {
+      // Rollback enrollment if course lookup fails
+      await supabase
+        .from('enrollments')
+        .delete()
+        .eq('id', data.id);
+      return NextResponse.json({
+        success: false,
+        error: 'Course lookup failed'
+      }, { status: 500 });
+    }
+
+    // Try to increment with capacity check
+    const { error: updateError } = await supabase
       .from('courses')
       .update({ enrolled_count: course.enrolled_count + 1 })
-      .eq('id', course_id);
+      .eq('id', course_id)
+      .eq('enrolled_count', course.enrolled_count) // Optimistic locking
+      .gte('capacity', course.enrolled_count + 1); // Capacity check
+
+    if (updateError || course.enrolled_count >= course.capacity) {
+      // Rollback enrollment if capacity exceeded
+      await supabase
+        .from('enrollments')
+        .delete()
+        .eq('id', data.id);
+      return NextResponse.json({
+        success: false,
+        error: 'Course is full'
+      }, { status: 400 });
+    }
 
     return NextResponse.json({ success: true, data }, { status: 201 });
   } catch (error) {

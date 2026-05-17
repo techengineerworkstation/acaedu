@@ -31,14 +31,39 @@ export async function requireAuth(req: NextRequest): Promise<AuthResult> {
     );
   }
 
-  // Use user data from auth metadata directly
+  // Try to get role from user metadata first, then fall back to users table
+  let role = session.user.user_metadata?.role || 'student';
+  let full_name = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User';
+  let avatar_url = session.user.user_metadata?.avatar_url || null;
+  let department = session.user.user_metadata?.department_id || null;
+
+  // If role is not in metadata, check the users table
+  if (!session.user.user_metadata?.role) {
+    try {
+      const { data: dbUser } = await supabase
+        .from('users')
+        .select('role, full_name, avatar_url, department_id')
+        .eq('id', session.user.id)
+        .single();
+
+      if (dbUser) {
+        role = dbUser.role || role;
+        full_name = dbUser.full_name || full_name;
+        avatar_url = dbUser.avatar_url || avatar_url;
+        department = dbUser.department_id || department;
+      }
+    } catch (e) {
+      // Fall back to metadata values
+    }
+  }
+
   const user: AuthUser = {
     id: session.user.id,
     email: session.user.email || '',
-    full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
-    role: session.user.user_metadata?.role || 'student',
-    avatar_url: session.user.user_metadata?.avatar_url || null,
-    department: session.user.user_metadata?.department_id || null,
+    full_name,
+    role,
+    avatar_url,
+    department,
   };
 
   return { user };

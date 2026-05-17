@@ -18,13 +18,14 @@ export async function GET(req: NextRequest) {
     const supabase = await createClient();
     const results: any[] = [];
     const searchTerm = `%${query}%`;
+    const rolePrefix = `/${authResult.user.role}`;
 
-    // Log search query
-    await supabase.from('search_queries').insert({
+    // Log search query (non-blocking)
+    supabase.from('search_queries').insert({
       user_id: authResult.user.id,
       query,
       search_type: type || 'general'
-    });
+    }).then(() => {}).catch(() => {});
 
     if (!type || type === 'course') {
       const { data: courses } = await supabase
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
         type: 'course', id: c.id,
         title: `${c.course_code} - ${c.title}`,
         description: c.description?.substring(0, 100),
-        url: `/courses/${c.id}`
+        url: `${rolePrefix}/courses/${c.id}`
       }));
     }
 
@@ -54,7 +55,7 @@ export async function GET(req: NextRequest) {
         type: 'announcement', id: a.id,
         title: a.title,
         description: a.content?.substring(0, 100),
-        url: `/announcements/${a.id}`
+        url: `${rolePrefix}/announcements`
       }));
     }
 
@@ -70,7 +71,7 @@ export async function GET(req: NextRequest) {
         type: 'event', id: e.id,
         title: e.title,
         description: e.description?.substring(0, 100),
-        url: `/events/${e.id}`
+        url: `${rolePrefix}/events`
       }));
     }
 
@@ -101,17 +102,19 @@ export async function GET(req: NextRequest) {
         type: 'material', id: m.id,
         title: m.title,
         description: m.description?.substring(0, 100),
-        url: `/courses/${m.course_id}/materials`
+        url: `${rolePrefix}/materials`
       }));
     }
 
-    // Update results count in search query
-    await supabase
+    // Update results count in search query (non-blocking)
+    supabase
       .from('search_queries')
       .update({ results_count: results.length })
       .eq('user_id', authResult.user.id)
       .order('created_at', { ascending: false })
-      .limit(1);
+      .limit(1)
+      .then(() => {})
+      .catch(() => {});
 
     return NextResponse.json({ success: true, data: results, total: results.length });
   } catch (error) {

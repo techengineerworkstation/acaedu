@@ -34,8 +34,6 @@ export default function AdminCoursesPage() {
   const getLecturerName = (id: string) => lecturers?.data?.find((l: any) => l.id === id)?.full_name || 'TBA';
 
   const courseList = courses?.data || [];
-  const { data: lecturers } = useQuery({ queryKey: ['users', 'lecturers'], queryFn: async () => { const r = await fetch('/api/users?role=lecturer'); return r.json(); } });
-  const { data: departments } = useQuery({ queryKey: ['departments'], queryFn: async () => { const r = await fetch('/api/courses?department=all'); return r.json(); } });
 
   const createMutation = useMutation({
     mutationFn: async (d: any) => { const r = await fetch('/api/courses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }); return r.json(); },

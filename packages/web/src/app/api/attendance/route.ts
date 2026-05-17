@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     // Students can check in themselves, lecturers can record for students
     if (authResult.user.role === 'student') {
-      const { schedule_id, schedule_instance_id, course_id } = body;
+      const { schedule_id, course_id, instance_date } = body;
       if (!schedule_id || !course_id) {
         return NextResponse.json({ success: false, error: 'schedule_id and course_id required' }, { status: 400 });
       }
@@ -60,12 +60,12 @@ export async function POST(req: NextRequest) {
         .from('attendance')
         .insert({
           schedule_id,
-          schedule_instance_id,
           student_id: authResult.user.id,
           course_id,
+          instance_date: instance_date || new Date().toISOString().split('T')[0],
           status: 'present',
-          check_in_time: new Date().toISOString(),
-          recorded_by: authResult.user.id
+          marked_by: authResult.user.id,
+          marked_at: new Date().toISOString()
         })
         .select()
         .single();
@@ -89,18 +89,18 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient();
     const inserts = records.map((r: any) => ({
       schedule_id: r.schedule_id,
-      schedule_instance_id: r.schedule_instance_id,
       student_id: r.student_id,
       course_id: r.course_id,
+      instance_date: r.instance_date || new Date().toISOString().split('T')[0],
       status: r.status || 'present',
-      check_in_time: r.status === 'present' || r.status === 'late' ? new Date().toISOString() : null,
-      notes: r.notes,
-      recorded_by: authResult.user.id
+      marked_by: authResult.user.id,
+      marked_at: new Date().toISOString(),
+      notes: r.notes
     }));
 
     const { data, error } = await supabase
       .from('attendance')
-      .upsert(inserts, { onConflict: 'schedule_instance_id,student_id' })
+      .upsert(inserts, { onConflict: 'student_id,course_id,instance_date,schedule_id' })
       .select();
 
     if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });

@@ -33,12 +33,28 @@ export default function StudentSchedulePage() {
     }
   });
 
+  const { data: holidaysData } = useQuery({
+    queryKey: ['holidays', format(weekStart, 'yyyy')],
+    queryFn: async () => {
+      const res = await fetch(`/api/holidays?year=${format(weekStart, 'yyyy')}`);
+      return res.json();
+    }
+  });
+
   const schedules = schedulesData?.data || [];
+  const holidays = holidaysData?.data || [];
 
   const getSchedulesForDay = (day: Date) => {
     return schedules.filter((s: any) => {
       const scheduleDate = new Date(s.start_time);
       return isSameDay(scheduleDate, day);
+    });
+  };
+
+  const getHolidaysForDay = (day: Date) => {
+    return holidays.filter((h: any) => {
+      const holidayDate = new Date(h.date);
+      return isSameDay(holidayDate, day);
     });
   };
 
@@ -98,30 +114,33 @@ export default function StudentSchedulePage() {
           <div className="grid grid-cols-7 min-h-[400px]">
             {weekDays.map((day) => {
               const daySchedules = getSchedulesForDay(day);
+              const dayHolidays = getHolidaysForDay(day);
               return (
                 <div key={day.toISOString()} className={`p-2 border-r border-gray-200 last:border-r-0 ${isToday(day) ? 'bg-primary-50/30' : ''}`}>
-                  {daySchedules.length === 0 ? (
-                    <p className="text-xs text-gray-400 text-center mt-4">No classes</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {daySchedules.map((s: any) => {
-                        const colors = SCHEDULE_COLORS[s.schedule_type] || SCHEDULE_COLORS.lecture;
-                        const startTime = format(new Date(s.start_time), 'h:mm a');
-                        const endTime = format(new Date(s.end_time), 'h:mm a');
-                        return (
-                          <div key={s.id} className={`p-2 rounded-lg border ${colors.bg} ${colors.border}`}>
-                            <p className={`text-xs font-semibold ${colors.text}`}>{s.course?.course_code}</p>
-                            <p className={`text-xs ${colors.text} opacity-80`}>{startTime} - {endTime}</p>
-                            {s.location && (
-                              <p className={`text-xs ${colors.text} opacity-70 flex items-center mt-1`}>
-                                <MapPinIcon className="h-3 w-3 mr-1" />{s.location}
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
+                  {dayHolidays.map((h: any) => (
+                    <div key={h.id} className="p-1.5 rounded bg-red-50 border border-red-200 mb-1">
+                      <p className="text-xs font-medium text-red-700">{h.name}</p>
                     </div>
+                  ))}
+                  {daySchedules.length === 0 && dayHolidays.length === 0 && (
+                    <p className="text-xs text-gray-400 text-center mt-4">No classes</p>
                   )}
+                  {daySchedules.map((s: any) => {
+                    const colors = SCHEDULE_COLORS[s.schedule_type] || SCHEDULE_COLORS.lecture;
+                    const startTime = format(new Date(s.start_time), 'h:mm a');
+                    const endTime = format(new Date(s.end_time), 'h:mm a');
+                    return (
+                      <div key={s.id} className={`p-2 rounded-lg border ${colors.bg} ${colors.border} mb-2`}>
+                        <p className={`text-xs font-semibold ${colors.text}`}>{s.course?.course_code}</p>
+                        <p className={`text-xs ${colors.text} opacity-80`}>{startTime} - {endTime}</p>
+                        {s.location && (
+                          <p className={`text-xs ${colors.text} opacity-70 flex items-center mt-1`}>
+                            <MapPinIcon className="h-3 w-3 mr-1" />{s.location}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}

@@ -9,28 +9,31 @@ export async function GET(req: NextRequest) {
 
     const supabase = await createClient();
 
-   // Replace lines 22-26 (and any others using .from) with this:
 const [
-  studentsRes,    // Change from studentCountRes
-  lecturersRes,   // Change from lecturerCountRes
-  coursesRes,     // Change from courseCountRes
+  studentsRes,
+  lecturersRes,
+  coursesRes,
   enrollmentsRes,
-  recentSignupsRes,
+  recentUsersRes,
+  subscriptionsRes,
   paymentsRes,
-  subscriptionsRes, // <--- Added this
-  eventsRes
+  eventsRes,
+  recentSignupsRes,
+  totalUsersRes,
+  activeUsersRes
 ] = await Promise.all([
   (supabase as any).from('users').select('id', { count: 'exact', head: true }).eq('role', 'student').eq('is_active', true),
   (supabase as any).from('users').select('id', { count: 'exact', head: true }).eq('role', 'lecturer').eq('is_active', true),
   (supabase as any).from('courses').select('id', { count: 'exact', head: true }).eq('is_active', true),
   (supabase as any).from('enrollments').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-  (supabase as any).from('users').select('id, full_name, created_at').order('created_at', { ascending: false }).limit(5)
-   (supabase as any).from('billing_subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-      (supabase as any).from('payments').select('amount').eq('status', 'completed'),
-      (supabase as any).from('events').select('id', { count: 'exact', head: true }).gte('start_date', new Date().toISOString()),
-      (supabase as any).from('users').select('id', { count: 'exact', head: true })
-        .gte('created_at', new Date(Date.now() - 30 * 86400000).toISOString())
-    ]);
+  (supabase as any).from('users').select('id, full_name, created_at').order('created_at', { ascending: false }).limit(5),
+  (supabase as any).from('billing_subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+  (supabase as any).from('payments').select('amount').eq('status', 'completed'),
+  (supabase as any).from('events').select('id', { count: 'exact', head: true }).gte('start_date', new Date().toISOString()),
+  (supabase as any).from('users').select('id', { count: 'exact', head: true }).gte('created_at', new Date(Date.now() - 30 * 86400000).toISOString()),
+  (supabase as any).from('users').select('id', { count: 'exact', head: true }),
+  (supabase as any).from('users').select('id', { count: 'exact', head: true }).eq('is_active', true)
+]);
 
     const totalRevenue = paymentsRes.data?.reduce((sum: any, p: any) => sum + (p.amount || 0), 0) || 0;
 
@@ -55,7 +58,9 @@ const [
           total_revenue: totalRevenue,
           active_subscriptions: subscriptionsRes.count || 0,
           recent_signups: recentSignupsRes.count || 0,
-          upcoming_events: eventsRes.count || 0
+          upcoming_events: eventsRes.count || 0,
+          total_users: totalUsersRes.count || 0,
+          active_users: activeUsersRes.count || 0
         },
         census: census || [],
         recent_activity: recentActivity || []

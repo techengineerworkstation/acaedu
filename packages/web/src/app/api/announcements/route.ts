@@ -119,13 +119,29 @@ export async function POST(req: NextRequest) {
         Promise.allSettled(emailPromises);
       }
 
-      // Realtime broadcast
-      for (const u of targetUsers) {
-        await supabase.channel(`user-${u.id}`).send({
-          type: 'broadcast',
-          event: 'new_announcement',
-          payload: { id: data.id, title, category, priority }
-        });
+      // Realtime notifications via broadcast_messages table (if table exists)
+      const notificationPayload = {
+        id: data.id,
+        title,
+        category,
+        priority,
+        author_id: authResult.user.id,
+        type: 'announcement'
+      };
+
+      try {
+        await supabase
+          .from('broadcast_messages')
+          .insert(targetUsers.map((u: any) => ({
+            channel: `user-${u.id}`,
+            event: 'new_announcement',
+            payload: notificationPayload,
+            is_read: false,
+            is_delivered: false
+          })));
+      } catch (broadcastError) {
+        // Broadcast table might not exist yet - this is not critical
+        console.warn('Broadcast messages table not available:', broadcastError);
       }
     }
 

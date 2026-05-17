@@ -19,8 +19,8 @@ let GET = async (req: NextRequest) => {
       .from('schedules')
       .select(`
         *,
-        course:courses (*),
-        lecturer:users!schedules_lecturer_id_fkey (*)
+        course:courses (id, course_code, title),
+        lecturer:users!schedules_lecturer_id_fkey (id, full_name, email)
       `)
       .order('start_time', { ascending: true });
 
@@ -88,8 +88,6 @@ export async function POST(req: NextRequest) {
       .insert({
         course_id,
         lecturer_id: body.lecturer_id || user.id,
-        title,
-        description,
         schedule_type,
         start_time,
         end_time,
@@ -97,8 +95,6 @@ export async function POST(req: NextRequest) {
         is_recurring: is_recurring || false,
         recurrence_rule,
         recurring_end_date,
-        attachments: body.attachments || [],
-        venue_id: null,
       })
       .select()
       .single();
@@ -148,8 +144,6 @@ export async function PUT(req: NextRequest) {
       .from('schedules')
       .update({
         course_id,
-        title,
-        description,
         schedule_type,
         start_time,
         end_time,

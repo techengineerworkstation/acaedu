@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('assignments')
-      .insert({ course_id, title, description, due_date, total_points: total_points || 100, attachment_urls: attachment_urls || [] })
+      .insert({ course_id, title, description, due_date, max_points: total_points || 100 })
       .select().single();
 
     if (error) return NextResponse.json({ success: false, error: error.message }, { status: 500 });

@@ -147,7 +147,7 @@ export default function StudentProfilePage() {
             {editing ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input label="Full Name" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required />
-                <Input label="Student ID" value={form.student_id} onChange={(e) => setForm({ ...form, student_id: e.target.value })} />
+                <Input label="Student ID / Matric Number" value={form.student_id} onChange={(e) => setForm({ ...form, student_id: e.target.value })} />
                 <Input label="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                 <Input label="Department" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
                 <Input label="Level" value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} placeholder="Year 1, Year 2, etc." />
@@ -164,7 +164,7 @@ export default function StudentProfilePage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div><span className="text-sm text-gray-500">Full Name</span><p className="font-medium text-gray-900">{user?.full_name}</p></div>
-                <div><span className="text-sm text-gray-500">Student ID</span><p className="font-medium text-gray-900">{user?.student_id || 'Not set'}</p></div>
+                <div><span className="text-sm text-gray-500">Student ID / Matric Number</span><p className="font-medium text-gray-900">{user?.student_id || 'Not set'}</p></div>
                 <div><span className="text-sm text-gray-500">Email</span><p className="font-medium text-gray-900">{user?.email}</p></div>
                 <div><span className="text-sm text-gray-500">Phone</span><p className="font-medium text-gray-900">{user?.phone || 'Not set'}</p></div>
                 <div><span className="text-sm text-gray-500">Department</span><p className="font-medium text-gray-900">{(user as any)?.department || 'Not set'}</p></div>

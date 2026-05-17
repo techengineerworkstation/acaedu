@@ -35,13 +35,14 @@ export default function LecturerSchedulePage() {
   });
 
   const [form, setForm] = useState({
-    course_id: '', title: '', schedule_type: 'lecture', start_time: '', end_time: '',
+    course_id: '', schedule_type: 'lecture', start_time: '', end_time: '',
     location: '', is_recurring: false, recurrence_rule: ''
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await fetch('/api/schedules', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+      const { title, ...scheduleData } = data;
+      const res = await fetch('/api/schedules', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(scheduleData) });
       return res.json();
     },
     onSuccess: (data: any) => {
@@ -130,7 +131,6 @@ export default function LecturerSchedulePage() {
                 {courses?.data?.map((c: any) => <option key={c.id} value={c.id}>{c.course_code} - {c.title}</option>)}
               </select>
             </div>
-            <Input label="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>

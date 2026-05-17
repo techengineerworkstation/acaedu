@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, createContext, useContext, useState } from 'react';
+import { useEffect, createContext, useContext, useState, useCallback } from 'react';
 import { supabase } from './client';
 
 interface UserType {
@@ -22,7 +22,11 @@ interface SessionContextType {
   user: UserType | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
+  subscribeToChannel: (channel: string, callback: (payload: any) => void) => void;
+  unsubscribeFromChannel: (channel: string) => void;
 }
+
+const activeChannels: Map<string, any> = new Map();
 
 const SessionContext = createContext<SessionContextType | undefined>(undefined);
 
@@ -42,16 +46,38 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const subscribeToChannel = useCallback((channel: string, callback: (payload: any) => void) => {
+    if (activeChannels.has(channel)) {
+      return;
+    }
+    const supabaseAny = supabase as any;
+    const channelSubscription = supabaseAny.channel(channel);
+    channelSubscription
+      .on('broadcast', { event: 'new_announcement' }, (payload: any) => {
+        callback(payload);
+      })
+      .subscribe();
+    activeChannels.set(channel, channelSubscription);
+  }, []);
+
+  const unsubscribeFromChannel = useCallback((channel: string) => {
+    const channelSubscription = activeChannels.get(channel);
+    if (channelSubscription) {
+      supabase.removeChannel(channelSubscription);
+      activeChannels.delete(channel);
+    }
+  }, []);
+
   useEffect(() => {
     async function checkSession() {
       try {
         const supabaseAny = supabase as any;
         const { data: { session: s } } = await supabaseAny.auth.getSession();
         setSession(s);
-        
+
         if (s?.user) {
           let userFromAuth = buildUserFromAuth(s.user);
-          
+
           // Try to get additional user data from user_profiles table
           try {
             const { data: profile } = await supabaseAny
@@ -59,7 +85,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
               .select('*')
               .eq('id', s.user.id)
               .single();
-            
+
             if (profile) {
               userFromAuth = {
                 ...userFromAuth,
@@ -71,7 +97,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
           } catch (profileError) {
             // Profile might not exist yet, use auth data only
           }
-          
+
           setUserDetails(userFromAuth);
         }
       } catch (e) {
@@ -100,7 +126,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      // Cleanup all active channels
+      activeChannels.forEach((channelSubscription, channelName) => {
+        supabaseAny.removeChannel(channelSubscription);
+      });
+      activeChannels.clear();
+    };
   }, []);
 
   const signOut = async () => {
@@ -117,7 +150,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <SessionContext.Provider value={{ session, user: userDetails, isLoading, signOut }}>
+    <SessionContext.Provider value={{ session, user: userDetails, isLoading, signOut, subscribeToChannel, unsubscribeFromChannel }}>
       {children}
     </SessionContext.Provider>
   );

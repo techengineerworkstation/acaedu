@@ -139,17 +139,34 @@ export default function LecturerMaterialsPage() {
 
     setUploadingFile(true);
 
-    const mockUrl = `https://storage.example.com/materials/${Date.now()}_${file.name}`;
-    setForm({
-      ...form,
-      file_url: mockUrl,
-      title: form.title || file.name.replace(/\.[^/.]+$/, '')
-    });
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('category', 'materials');
 
-    setTimeout(() => {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setForm({
+          ...form,
+          file_url: result.data.url,
+          title: form.title || file.name.replace(/\.[^/.]+$/, '')
+        });
+        toast.success('File uploaded successfully');
+      } else {
+        throw new Error(result.error || 'Upload failed');
+      }
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast.error(error.message || 'File upload failed');
+    } finally {
       setUploadingFile(false);
-      toast.success('File ready for upload');
-    }, 1500);
+    }
   };
 
   return (

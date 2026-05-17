@@ -34,7 +34,7 @@
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-gray-50 antialiased;
     background-color: var(--color-background);
     color: var(--color-text-primary);
   }
@@ -42,6 +42,76 @@
   .dark body {
     background-color: var(--color-background);
     color: var(--color-text-primary);
+  }
+
+  /* Dark mode global overrides */
+  .dark {
+    color-scheme: dark;
+  }
+
+  .dark .bg-white {
+    background-color: var(--color-surface) !important;
+  }
+
+  .dark .bg-gray-50 {
+    background-color: var(--color-background) !important;
+  }
+
+  .dark .bg-gray-100 {
+    background-color: #1e293b !important;
+  }
+
+  .dark .text-gray-900 {
+    color: var(--color-text-primary) !important;
+  }
+
+  .dark .text-gray-800 {
+    color: #e2e8f0 !important;
+  }
+
+  .dark .text-gray-700 {
+    color: #cbd5e1 !important;
+  }
+
+  .dark .text-gray-600 {
+    color: var(--color-text-secondary) !important;
+  }
+
+  .dark .text-gray-500 {
+    color: #94a3b8 !important;
+  }
+
+  .dark .text-gray-400 {
+    color: #64748b !important;
+  }
+
+  .dark .border-gray-200 {
+    border-color: #334155 !important;
+  }
+
+  .dark .border-gray-300 {
+    border-color: #475569 !important;
+  }
+
+  .dark .divide-gray-200 > * + * {
+    border-color: #334155 !important;
+  }
+
+  .dark .shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .dark input,
+  .dark select,
+  .dark textarea {
+    background-color: #1e293b !important;
+    color: var(--color-text-primary) !important;
+    border-color: #475569 !important;
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: #64748b !important;
   }
 }
 
@@ -55,7 +125,7 @@
   }
 
   .btn-secondary {
-    @apply btn bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500;
+    @apply btn bg-gray-200 text-gray-900 dark:text-gray-800 hover:bg-gray-300 focus:ring-gray-500;
   }
 
   .btn-outline {
@@ -78,8 +148,17 @@
     @apply bg-white rounded-xl shadow-sm border border-gray-200;
   }
 
+  .dark .card {
+    background-color: var(--color-surface);
+    border-color: #334155;
+  }
+
   .card-header {
     @apply px-6 py-4 border-b border-gray-200;
+  }
+
+  .dark .card-header {
+    border-color: #334155;
   }
 
   .card-body {

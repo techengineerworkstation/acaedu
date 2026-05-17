@@ -26,6 +26,8 @@ export default function AdminDashboardPage() {
     { label: 'Total Revenue', value: `$${(stats.total_revenue || 0).toLocaleString()}`, icon: CurrencyDollarIcon, color: 'text-yellow-600', bg: 'bg-yellow-100' },
     { label: 'Active Enrollments', value: stats.active_enrollments || 0, icon: SparklesIcon, color: 'text-cyan-600', bg: 'bg-cyan-100' },
     { label: 'Active Subscriptions', value: stats.active_subscriptions || 0, icon: BellIcon, color: 'text-pink-600', bg: 'bg-pink-100' },
+    { label: 'Total Users', value: stats.total_users || 0, icon: UserGroupIcon, color: 'text-gray-600', bg: 'bg-gray-100' },
+    { label: 'Active Users', value: stats.active_users || 0, icon: UserGroupIcon, color: 'text-emerald-600', bg: 'bg-emerald-100' },
     { label: 'Recent Signups (30d)', value: stats.recent_signups || 0, icon: UserGroupIcon, color: 'text-indigo-600', bg: 'bg-indigo-100' },
     { label: 'Upcoming Events', value: stats.upcoming_events || 0, icon: CalendarIcon, color: 'text-red-600', bg: 'bg-red-100' },
   ];

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import DashboardLayout from '@/components/layout/dashboard-layout';
@@ -8,7 +8,7 @@ import Button from '@/components/ui/button';
 import Input from '@/components/ui/input';
 import Modal from '@/components/ui/modal';
 import { toast } from 'react-hot-toast';
-import { PlusIcon, VideoCameraIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, VideoCameraIcon, TrashIcon, ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 
 function LecturerVideosContent() {
   const searchParams = useSearchParams();
@@ -16,6 +16,46 @@ function LecturerVideosContent() {
   const queryClient = useQueryClient();
   const [showUpload, setShowUpload] = useState(false);
   const [form, setForm] = useState({ course_id: courseId || '', title: '', description: '', video_url: '', video_type: 'youtube', semester: '', academic_year: '' });
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [uploadedVideoUrl, setUploadedVideoUrl] = useState('');
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
+  const [videoFile, setVideoFile] = useState<string | null>(null);
+
+  const handleVideoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingFile(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('category', 'videos');
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setVideoFile(result.data.url);
+        toast.success('Video uploaded successfully');
+      } else {
+        throw new Error(result.error || 'Upload failed');
+      }
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast.error(error.message || 'Video upload failed');
+    } finally {
+      setUploadingFile(false);
+      // Clear file input
+      if (videoFileInputRef.current) {
+        videoFileInputRef.current.value = '';
+      }
+    }
+  };
 
   const { data: courses } = useQuery({ queryKey: ['courses'], queryFn: async () => { const r = await fetch('/api/courses'); return r.json(); } });
   const { data, isLoading } = useQuery({
@@ -81,9 +121,34 @@ function LecturerVideosContent() {
               <Input label="Semester" value={form.semester} onChange={(e) => setForm({ ...form, semester: e.target.value })} placeholder="Fall 2024" />
               <Input label="Academic Year" value={form.academic_year} onChange={(e) => setForm({ ...form, academic_year: e.target.value })} placeholder="2024/2025" />
             </div>
-            <div className="flex justify-end space-x-3 pt-4">
-              <Button variant="secondary" onClick={() => setShowUpload(false)}>Cancel</Button>
-              <Button onClick={() => uploadMutation.mutate(form)} isLoading={uploadMutation.isPending}>Add Video</Button>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <ArrowUpTrayIcon className="h-4 w-4 text-gray-500" />
+                <button
+                  type="button"
+                  onClick={() => videoFileInputRef.current?.click()}
+                  className="flex items-center space-x-1 text-sm font-medium text-primary-600 hover:text-primary-800"
+                >
+                  Upload Video File
+                  <input
+                    type="file"
+                    ref={videoFileInputRef}
+                    className="hidden"
+                    accept=".mp4,.avi,.mov,.wmv,.flv,.webm"
+                    onChange={handleVideoFileUpload}
+                  />
+                </button>
+                {videoFile && (
+                  <span className="text-xs text-gray-500 ml-2">Video uploaded</span>
+                )}
+              </div>
+              <div className="flex justify-end space-x-3 pt-4">
+                <Button variant="secondary" onClick={() => setShowUpload(false)}>Cancel</Button>
+                <Button onClick={() => uploadMutation.mutate({
+                  ...form,
+                  video_url: videoFile || form.video_url
+                })} isLoading={uploadMutation.isPending || uploadingFile}>Add Video</Button>
+              </div>
             </div>
           </div>
         </Modal>

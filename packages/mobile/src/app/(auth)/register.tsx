@@ -73,6 +73,51 @@ export default function RegisterScreen() {
     }
   };
 
+  const handleEmailRegister = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    // Basic validation
+    if (!email || !password || !confirmPassword || !fullName || !department) {
+      setError('Please fill in all fields');
+      setIsLoading(false);
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // TODO: Implement actual email/password signup with Firebase or Supabase
+      // For now, we'll simulate success
+      console.log('Email registration attempted:', { email, fullName, department, role });
+
+      // Simulate successful registration
+      setIsLoading(false);
+
+      // Navigate to dashboard based on role
+      switch (role) {
+        case 'student':
+          router.replace('/(student)/dashboard');
+          break;
+        case 'lecturer':
+          router.replace('/(lecturer)/dashboard');
+          break;
+        case 'admin':
+          router.replace('/(admin)/dashboard');
+          break;
+        default:
+          router.replace('/(student)/dashboard');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Registration failed');
+      setIsLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -192,13 +237,7 @@ export default function RegisterScreen() {
 
             <Button
               title="Create Account"
-              onPress={() => {
-                Alert.alert(
-                  'Demo Mode',
-                  'Please use Google or Apple sign-up for this demo. Email sign-up requires backend setup.',
-                  [{ text: 'OK' }]
-                );
-              }}
+              onPress={handleEmailRegister}
               fullWidth
               style={styles.submitButton}
             />

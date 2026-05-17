@@ -17,6 +17,8 @@ interface InputProps extends TextInputProps {
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
   containerStyle?: ViewStyle;
+  onRightIconPress?: () => void;
+  rightIconActive?: boolean;
 }
 
 export default function Input({
@@ -66,7 +68,15 @@ export default function Input({
           onBlur={() => setIsFocused(false)}
           {...props}
         />
-        {rightIcon && <View style={styles.iconRight}>{rightIcon}</View>}
+        {rightIcon && (
+          <TouchableOpacity
+            style={styles.iconRight}
+            onPress={onRightIconPress}
+            activeOpacity={0.6}
+          >
+            {rightIcon}
+          </TouchableOpacity>
+        )}
       </View>
       {error && <Text style={styles.error}>{error}</Text>}
       {helperText && !error && <Text style={styles.helper}>{helperText}</Text>}

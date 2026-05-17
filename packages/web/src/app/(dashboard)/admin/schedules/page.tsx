@@ -16,8 +16,6 @@ export default function AdminSchedulesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
     course_id: '',
-    title: '',
-    description: '',
     schedule_type: 'class',
     start_time: '',
     end_time: '',
@@ -37,10 +35,11 @@ export default function AdminSchedulesPage() {
 
   const createMutation = useMutation({
     mutationFn: async (d: any) => {
+      const { title, description, ...scheduleData } = d;
       const r = await fetch('/api/schedules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(d)
+        body: JSON.stringify(scheduleData)
       });
       return r.json();
     },
@@ -48,7 +47,7 @@ export default function AdminSchedulesPage() {
       if (d.success) {
         toast.success('Schedule created!');
         setShowCreate(false);
-        setForm({ course_id: '', title: '', description: '', schedule_type: 'class', start_time: '', end_time: '', location: '', is_recurring: false });
+        setForm({ course_id: '', schedule_type: 'class', start_time: '', end_time: '', location: '', is_recurring: false });
         queryClient.invalidateQueries({ queryKey: ['schedules'] });
       } else {
         toast.error(d.error);
@@ -96,17 +95,6 @@ export default function AdminSchedulesPage() {
                   <option key={c.id} value={c.id}>{c.course_code} - {c.title}</option>
                 ))}
               </select>
-            </div>
-            <Input label="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g., Introduction to Computer Science - Lecture" />
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea
-                className="w-full border rounded-lg px-3 py-2 text-sm"
-                rows={3}
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Optional description"
-              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
