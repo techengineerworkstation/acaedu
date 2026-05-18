@@ -45,6 +45,15 @@ export default function RegisterPage() {
 
   useEffect(() => {
     setIsMounted(true);
+    // Handle Paystack payment confirmation callback
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentEmail = urlParams.get('email');
+    const paymentConfirmed = urlParams.get('payment') === 'confirmed';
+    if (paymentConfirmed && paymentEmail) {
+      setEmail(paymentEmail);
+      setRole('admin');
+      toast.success('Payment confirmed! Complete your admin registration.');
+    }
   }, []);
 
   if (!isMounted) {
@@ -120,18 +129,35 @@ export default function RegisterPage() {
 
     // Security: Check paywall for admin accounts
     if (role === 'admin') {
-      try {
-        const accessRes = await fetch('/api/auth/check-access');
-        const accessData = await accessRes.json();
-        if (accessData.paywall_enabled) {
-          // Redirect to billing page for admin payment
-          toast.error('Admin accounts require payment. Redirecting to billing...');
-          router.push('/billing');
-          return;
+      // Check if payment was already confirmed via URL params
+      const urlParams = new URLSearchParams(window.location.search);
+      const paymentConfirmed = urlParams.get('payment') === 'confirmed';
+      const paymentEmail = urlParams.get('email')?.toLowerCase();
+
+      if (!paymentConfirmed || paymentEmail !== normalizedEmail) {
+        try {
+          // Initialize Paystack payment
+          const paywallRes = await fetch('/api/auth/admin-paywall', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email.trim() })
+          });
+          const paywallData = await paywallRes.json();
+
+          if (paywallData.bypass) {
+            // Whitelisted email or paywall disabled - allow registration
+          } else if (paywallData.authorization_url) {
+            // Redirect to Paystack for payment
+            toast('Admin accounts require payment. Redirecting to Paystack...');
+            window.location.href = paywallData.authorization_url;
+            return;
+          } else {
+            toast.error(paywallData.error || 'Failed to initialize payment');
+            return;
+          }
+        } catch (err) {
+          console.warn('Paywall check failed:', err);
         }
-      } catch (err) {
-        // If check fails, allow registration (fail open for now)
-        console.warn('Access check failed:', err);
       }
     }
 
