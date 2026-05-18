@@ -138,25 +138,16 @@ export default function RegisterPage() {
       if (data.user) {
         console.log('User registered:', data.user.id);
 
-        // Create user profile in the users table (using API route for admin-level insert)
-        const profileData = {
-          id: data.user.id,
-          full_name: fullName,
-          email: email.trim(),
-          role: role,
-          department_id: selectedDepartment || null,
-          year_level: role === 'student' ? parseInt(selectedYear) : null,
-          semester: role === 'student' ? parseInt(selectedSemester) : null
-        };
-
+        // Create user profile in the users table using the auth user's ID
         const profileRes = await fetch('/api/auth/create-user', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            id: data.user.id,
             email: email.trim(),
             full_name: fullName,
             role: role,
-            department: selectedDepartment || undefined
+            department_id: selectedDepartment || undefined
           })
         });
 

@@ -2,17 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 /**
- * Create a new user (admin/lecturer creation from admin panel)
+ * Create a new user profile in the users table.
+ * Called after Supabase Auth signUp() to sync the user profile.
  * POST /api/auth/create-user
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, full_name, role, employee_id, department, phone } = body;
+    const { id, email, full_name, role, department_id, year_level, semester } = body;
 
-    if (!email || !full_name) {
+    if (!id || !email || !full_name) {
       return NextResponse.json(
-        { error: 'Missing required fields: email and full_name are required' },
+        { error: 'Missing required fields: id, email, and full_name are required' },
         { status: 400 }
       );
     }
@@ -20,80 +21,72 @@ export async function POST(req: NextRequest) {
     const admin = createAdminClient();
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Check if user already exists by email
+    // Check if user profile already exists
     const { data: existingUser } = await admin
       .from('users')
       .select('id, email')
-      .eq('email', normalizedEmail)
+      .eq('id', id)
       .limit(1);
 
     if (existingUser && existingUser.length > 0) {
-      return NextResponse.json(
-        { error: 'User with this email already exists' },
-        { status: 400 }
-      );
-    }
+      // Profile already exists — update it with latest registration data
+      const { data: updatedUser, error: updateError } = await admin
+        .from('users')
+        .update({
+          full_name: full_name.trim(),
+          role: role || 'student',
+          department: department_id || null,
+        })
+        .eq('id', id)
+        .select()
+        .single();
 
-    // Generate a completely new unique ID
-    const userId = crypto.randomUUID() + '-' + Date.now();
-
-    // Try to create user in Supabase Auth
-    let authUserId = userId;
-    try {
-      const tempPassword = 'Temp' + Math.random().toString(36).slice(-6) + '123!';
-      const { data: authData, error: authError } = await admin.auth.admin.createUser({
-        email: normalizedEmail,
-        password: tempPassword,
-        email_confirm: true,
-        user_metadata: {
-          full_name,
-          role: role || 'student'
-        }
-      });
-
-      if (authData?.user?.id) {
-        authUserId = authData.user.id;
+      if (updateError) {
+        console.error('User update error:', updateError);
+        return NextResponse.json(
+          { error: 'Failed to update user profile: ' + updateError.message },
+          { status: 500 }
+        );
       }
-    } catch (e) {
-      console.log('Auth creation skipped, using generated ID');
+
+      return NextResponse.json({
+        success: true,
+        user: updatedUser,
+        message: 'User profile updated successfully.'
+      });
     }
 
-    // Create user in users table with upsert to handle conflicts
+    // Create user profile using the Supabase Auth user ID
     const newUser = {
-      id: authUserId,
+      id,
       email: normalizedEmail,
       full_name: full_name.trim(),
       role: role || 'student',
       is_active: true,
-      ...(department ? { department } : {}),
-      ...(employee_id ? { employee_id } : {}),
-      ...(phone ? { phone } : {})
+      email_verified: false,
+      department: department_id || null,
     };
 
-    // Use upsert instead of insert to handle duplicates
     const { data: insertedUser, error: insertError } = await admin
       .from('users')
-      .upsert(newUser, { 
-        onConflict: 'email',
-        ignoreDuplicates: false 
-      })
+      .insert(newUser)
       .select()
       .single();
 
     if (insertError) {
       console.error('User insert error:', insertError);
       return NextResponse.json(
-        { error: 'Failed to create user: ' + insertError.message },
+        { error: 'Failed to create user profile: ' + insertError.message },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       user: insertedUser,
-      message: role === 'lecturer' 
-        ? 'Lecturer created successfully.'
-        : 'User created successfully.'
+      message: role === 'lecturer'
+        ? 'Lecturer profile created successfully.'
+        : 'User profile created successfully.'
     });
   } catch (error) {
     console.error('API create-user error:', error);

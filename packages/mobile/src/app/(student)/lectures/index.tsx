@@ -83,7 +83,7 @@ export default function StudentLecturesScreen() {
         }
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Recorded Lectures</Text>
+          <Text style={styles.title}>Class Records</Text>
           <Text style={styles.subtitle}>Watch recordings with AI-generated study materials</Text>
         </View>
 
@@ -107,7 +107,7 @@ export default function StudentLecturesScreen() {
           <EmptyState
             icon={<PlayIcon size={48} color={COLORS.gray[400]} />}
             title="No Lectures"
-            message="Recorded lectures will appear here"
+            message="Class records will appear here"
           />
         ) : (
           <View style={styles.lecturesList}>

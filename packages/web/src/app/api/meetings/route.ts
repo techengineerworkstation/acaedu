@@ -1,6 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 
+// In-memory store for meetings (no meetings table in DB)
+let meetingsStore: any[] = [
+  {
+    id: 'meeting_demo_1',
+    title: 'Introduction to Programming - Lecture 5',
+    type: 'zoom',
+    host_id: 'system',
+    course_id: 'cs101',
+    start_time: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+    duration: 90,
+    agenda: '',
+    status: 'scheduled',
+    join_url: 'https://zoom.us/j/1234567890?pwd=demo123',
+    host_url: 'https://zoom.us/s/1234567890',
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'meeting_demo_2',
+    title: 'Data Structures - Tutorial Session',
+    type: 'google_meet',
+    host_id: 'system',
+    course_id: 'cs201',
+    start_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    duration: 60,
+    agenda: '',
+    status: 'scheduled',
+    join_url: 'https://meet.google.com/abc-defg-hij',
+    host_url: 'https://meet.google.com/abc-defg-hij',
+    created_at: new Date().toISOString()
+  }
+];
+
 /**
  * POST /api/meetings
  * Create a new Zoom or Google Meet meeting
@@ -13,56 +45,58 @@ export async function POST(req: NextRequest) {
     }
 
     const user = authResult.user;
-    const body = await req.json();
-    const { 
-      type, // 'zoom' | 'google_meet'
-      title, 
-      course_id,
-      start_time,
-      duration, // in minutes
-      agenda
-    } = body;
+    if (!['admin', 'lecturer'].includes(user.role)) {
+      return NextResponse.json({ success: false, error: 'Insufficient permissions' }, { status: 403 });
+    }
 
-    if (!type || !title || !start_time) {
+    const body = await req.json();
+    const { type, title, course_id, start_time, duration, agenda } = body;
+
+    if (!title || !start_time) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
+        { success: false, error: 'Title and start time are required' },
         { status: 400 }
       );
     }
 
-    let meeting = {
+    let joinUrl = '';
+    let hostUrl = '';
+
+    if (type === 'zoom') {
+      const meetingId = Math.floor(Math.random() * 9000000000) + 1000000000;
+      const pwd = Math.random().toString(36).substring(7);
+      joinUrl = `https://zoom.us/j/${meetingId}?pwd=${pwd}`;
+      hostUrl = `https://zoom.us/s/${meetingId}`;
+    } else {
+      const code = Array.from({ length: 3 }, () =>
+        String.fromCharCode(97 + Math.floor(Math.random() * 26))
+      ).join('') + '-' +
+      Array.from({ length: 3 }, () =>
+        String.fromCharCode(97 + Math.floor(Math.random() * 26))
+      ).join('') + '-' +
+      Array.from({ length: 3 }, () =>
+        String.fromCharCode(97 + Math.floor(Math.random() * 26))
+      ).join('');
+      joinUrl = `https://meet.google.com/${code}`;
+      hostUrl = joinUrl;
+    }
+
+    const meeting = {
       id: `meeting_${Date.now()}`,
       title,
-      type,
+      type: type || 'zoom',
       host_id: user.id,
-      course_id,
+      course_id: course_id || null,
       start_time,
-      duration: duration || 60,
-      agenda,
+      duration: parseInt(duration) || 60,
+      agenda: agenda || '',
       status: 'scheduled',
-      join_url: '',
-      host_url: '',
+      join_url: joinUrl,
+      host_url: hostUrl,
       created_at: new Date().toISOString()
     };
 
-    if (type === 'zoom') {
-      // Generate Zoom-style meeting
-      meeting.join_url = `https://zoom.us/j/${Math.floor(Math.random() * 9000000000) + 1000000000}?pwd=${Math.random().toString(36).substring(7)}`;
-      meeting.host_url = `https://zoom.us/s/${Math.floor(Math.random() * 9000000000) + 1000000000}`;
-    } else if (type === 'google_meet') {
-      // Generate Google Meet-style link
-      const code = Array.from({ length: 3 }, () => 
-        String.fromCharCode(97 + Math.floor(Math.random() * 26))
-      ).join('') + '-' + 
-      Array.from({ length: 3 }, () => 
-        String.fromCharCode(97 + Math.floor(Math.random() * 26))
-      ).join('') + '-' + 
-      Array.from({ length: 3 }, () => 
-        String.fromCharCode(97 + Math.floor(Math.random() * 26))
-      ).join('');
-      meeting.join_url = `https://meet.google.com/${code}`;
-      meeting.host_url = meeting.join_url;
-    }
+    meetingsStore.push(meeting);
 
     return NextResponse.json({ success: true, data: meeting }, { status: 201 });
   } catch (error) {
@@ -76,7 +110,7 @@ export async function POST(req: NextRequest) {
 
 /**
  * GET /api/meetings
- * List meetings for a course or user
+ * List meetings
  */
 export async function GET(req: NextRequest) {
   try {
@@ -85,45 +119,45 @@ export async function GET(req: NextRequest) {
       return authResult;
     }
 
-    const { searchParams } = new URL(req.url);
-    const courseId = searchParams.get('course_id');
-    const upcoming = searchParams.get('upcoming');
-
-    // Return mock data - in production, query from database
-    const meetings = [
-      {
-        id: 'meeting_1',
-        title: 'Introduction to Programming - Lecture 5',
-        type: 'zoom',
-        host_id: 'lecturer_1',
-        course_id: courseId || 'cs101',
-        start_time: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-        duration: 90,
-        status: 'scheduled',
-        join_url: 'https://zoom.us/j/1234567890',
-        host_url: 'https://zoom.us/s/1234567890',
-        created_at: new Date().toISOString()
-      },
-      {
-        id: 'meeting_2',
-        title: 'Data Structures - Tutorial Session',
-        type: 'google_meet',
-        host_id: 'lecturer_2',
-        course_id: courseId || 'cs201',
-        start_time: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        duration: 60,
-        status: 'scheduled',
-        join_url: 'https://meet.google.com/abc-defg-hij',
-        host_url: 'https://meet.google.com/abc-defg-hij',
-        created_at: new Date().toISOString()
-      }
-    ];
-
-    return NextResponse.json({ success: true, data: meetings });
+    return NextResponse.json({ success: true, data: meetingsStore });
   } catch (error) {
     console.error('Meetings fetch error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to fetch meetings' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/meetings?id=X
+ * Delete a meeting
+ */
+export async function DELETE(req: NextRequest) {
+  try {
+    const authResult = await requireAuth(req);
+    if (!('user' in authResult)) {
+      return authResult;
+    }
+
+    const user = authResult.user;
+    if (!['admin', 'lecturer'].includes(user.role)) {
+      return NextResponse.json({ success: false, error: 'Insufficient permissions' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'Meeting ID required' }, { status: 400 });
+    }
+
+    meetingsStore = meetingsStore.filter(m => m.id !== id);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Meeting delete error:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete meeting' },
       { status: 500 }
     );
   }

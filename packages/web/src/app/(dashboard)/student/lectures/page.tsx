@@ -193,7 +193,7 @@ export default function StudentLecturesPage() {
         <FadeIn direction="down">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Recorded Lectures</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Class Records</h1>
               <p className="text-gray-600 mt-1">Watch recordings with AI-generated summaries and study materials</p>
             </div>
           </div>
@@ -225,7 +225,7 @@ export default function StudentLecturesPage() {
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <BookOpenIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No lectures found</h3>
-            <p className="text-gray-500">Recorded lectures will appear here</p>
+            <p className="text-gray-500">Class records will appear here</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
