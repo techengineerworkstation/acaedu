@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { isAllowedEmail } from '@/lib/security';
 
 /**
  * Auth callback endpoint - handles both OAuth and email magic link flows
@@ -80,6 +81,13 @@ export async function GET(req: NextRequest) {
     let role: string | null = state;
     if (!role && userFromSession?.user_metadata?.role) {
       role = userFromSession.user_metadata.role as string;
+    }
+
+    // Security: Check email whitelist for admin role
+    const userEmail = userFromSession?.email?.toLowerCase() || '';
+    if (role === 'admin' && !isAllowedEmail(userEmail)) {
+      console.warn('Auth callback: Unauthorized admin attempt from:', userEmail);
+      return NextResponse.redirect(new URL('/login?error=unauthorized_email', req.url));
     }
 
     // If this was a registration flow with a role, ensure the user record exists in our custom users table

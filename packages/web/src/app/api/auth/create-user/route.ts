@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { isAllowedEmail } from '@/lib/security';
 
 /**
  * Create a new user profile in the users table.
@@ -18,8 +19,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const admin = createAdminClient();
+    // Security: Check email whitelist for admin registration
     const normalizedEmail = email.toLowerCase().trim();
+    if (role === 'admin' && !isAllowedEmail(normalizedEmail)) {
+      return NextResponse.json(
+        { error: 'This email is not authorized for admin registration' },
+        { status: 403 }
+      );
+    }
+
+    const admin = createAdminClient();
 
     // Check if user profile already exists
     const { data: existingUser } = await admin

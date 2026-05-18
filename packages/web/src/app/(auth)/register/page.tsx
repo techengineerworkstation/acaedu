@@ -17,7 +17,7 @@ interface Department {
   code: string;
 }
 
-const ADMIN_EMAILS = ['ChidexIbe@gmx.com', 'DanielEbirim20@gmail.com'];
+const ADMIN_EMAILS = ['danielebirim25@gmail.com', 'chidexibe@gmx.com', 'merchantenterpriseconnect@yahoo.com'];
 
 function useSoundEffectsSafe() {
   const playClick = useCallback(() => {}, []);
@@ -109,6 +109,32 @@ export default function RegisterPage() {
       toast.error('Please select a department');
       return;
     }
+
+    // Security: Check email whitelist for admin registration
+    const normalizedEmail = email.trim().toLowerCase();
+    if (role === 'admin' && !ADMIN_EMAILS.includes(normalizedEmail)) {
+      playError();
+      toast.error('This email is not authorized for admin registration');
+      return;
+    }
+
+    // Security: Check paywall for admin accounts
+    if (role === 'admin') {
+      try {
+        const accessRes = await fetch('/api/auth/check-access');
+        const accessData = await accessRes.json();
+        if (accessData.paywall_enabled) {
+          // Redirect to billing page for admin payment
+          toast.error('Admin accounts require payment. Redirecting to billing...');
+          router.push('/billing');
+          return;
+        }
+      } catch (err) {
+        // If check fails, allow registration (fail open for now)
+        console.warn('Access check failed:', err);
+      }
+    }
+
     setIsLoading(true);
     try {
       const fullName = email.split('@')[0];

@@ -84,18 +84,18 @@ console.log('Logging in with:', email);
       toast.success('Logged in successfully!');
       
       // Admin emails that should go to admin dashboard
-      const ADMIN_EMAILS = ['ChidexIbe@gmx.com', 'DanielEbirim20@gmail.com'];
+      const ALLOWED_ADMIN_EMAILS = ['danielebirim25@gmail.com', 'chidexibe@gmx.com', 'merchantenterpriseconnect@yahoo.com'];
       const userEmail = data.user?.email?.toLowerCase() || '';
-      const isAdminEmail = ADMIN_EMAILS.includes(userEmail);
-      
+      const isAdminEmail = ALLOWED_ADMIN_EMAILS.includes(userEmail);
+
       // Get user role from metadata OR check admin email
-      const userRole = isAdminEmail ? 'admin' : 
-        (data.user?.user_metadata?.role || 
+      const userRole = isAdminEmail ? 'admin' :
+        (data.user?.user_metadata?.role ||
         (data as any).user?.role ||
         'student');
-        
+
       console.log('Redirecting with role:', userRole, 'isAdminEmail:', isAdminEmail);
-      
+
       const rolePaths: Record<string, string> = {
         student: '/student/dashboard',
         lecturer: '/lecturer/dashboard',
@@ -103,9 +103,9 @@ console.log('Logging in with:', email);
         dean: '/admin/dashboard'
       };
       const redirectPath = rolePaths[userRole] || '/student/dashboard';
-      
+
       console.log('Redirecting to:', redirectPath);
-      
+
       // Wait for session to confirm before redirect
       setTimeout(() => {
         router.push(redirectPath);
