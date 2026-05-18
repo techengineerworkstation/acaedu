@@ -1,14 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { requireRole } from '@/lib/auth';
+
+/**
+ * Sanitize user data based on requester's role.
+ * Non-admins only see public fields.
+ */
+function sanitizeUser(user: any, requesterRole: string) {
+  const publicFields: any = {
+    id: user.id,
+    full_name: user.full_name,
+    role: user.role,
+    department: user.department,
+    avatar_url: user.avatar_url,
+  };
+
+  if (requesterRole === 'admin' || requesterRole === 'dean') {
+    return {
+      ...publicFields,
+      email: user.email,
+      phone: user.phone,
+      student_id: user.student_id,
+      employee_id: user.employee_id,
+      is_active: user.is_active,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+    };
+  }
+
+  return publicFields;
+}
 
 /**
  * GET /api/users
  * Get all registered users (requires admin/dean/lecturer role)
- * Returns users from the public.users table
  */
 export async function GET(req: NextRequest) {
   try {
+    const authResult = await requireRole(req, ['admin', 'dean', 'lecturer']);
+    if (!('user' in authResult)) return authResult;
+
+    const requesterRole = authResult.user.role;
     const supabase = await createClient();
     const { searchParams } = new URL(req.url);
     const role = searchParams.get('role');
@@ -18,7 +51,6 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = (page - 1) * limit;
 
-    // Try to fetch from public.users table
     let query = supabase
       .from('users')
       .select('*', { count: 'exact' })
@@ -34,25 +66,27 @@ export async function GET(req: NextRequest) {
     const { data, error, count } = await query;
 
     if (error) {
-      // Table might not exist yet - return empty array
-      return NextResponse.json({ 
-        success: true, 
-        data: [], 
+      return NextResponse.json({
+        success: true,
+        data: [],
         count: 0,
         message: 'Users table not configured yet'
       });
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      data: data || [], 
-      count: count || 0 
+    // Sanitize user data based on requester role
+    const sanitizedData = (data || []).map(user => sanitizeUser(user, requesterRole));
+
+    return NextResponse.json({
+      success: true,
+      data: sanitizedData,
+      count: count || 0
     });
   } catch (error: any) {
     console.error('Users API error:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: error.message 
+    return NextResponse.json({
+      success: false,
+      error: error.message
     }, { status: 500 });
   }
 }
@@ -63,11 +97,13 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
+    const authResult = await requireRole(req, ['admin']);
+    if (!('user' in authResult)) return authResult;
+
     const admin = createAdminClient();
     const body = await req.json();
     const { email, password, full_name, role, department_id, student_id, employee_id } = body;
 
-    // Create user in auth using admin client
     const { data: authData, error: authError } = await admin.auth.admin.createUser({
       email,
       password,
@@ -82,21 +118,21 @@ export async function POST(req: NextRequest) {
     });
 
     if (authError) {
-      return NextResponse.json({ 
-        success: false, 
-        error: authError.message 
+      return NextResponse.json({
+        success: false,
+        error: authError.message
       }, { status: 400 });
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      data: authData.user 
+    return NextResponse.json({
+      success: true,
+      data: authData.user
     });
   } catch (error: any) {
     console.error('Create user error:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: error.message 
+    return NextResponse.json({
+      success: false,
+      error: error.message
     }, { status: 500 });
   }
 }
@@ -107,6 +143,9 @@ export async function POST(req: NextRequest) {
  */
 export async function PUT(req: NextRequest) {
   try {
+    const authResult = await requireRole(req, ['admin']);
+    if (!('user' in authResult)) return authResult;
+
     const supabase = await createClient();
     const body = await req.json();
     const { id, full_name, role, department, is_active } = body;
@@ -125,21 +164,21 @@ export async function PUT(req: NextRequest) {
       .single();
 
     if (error) {
-      return NextResponse.json({ 
-        success: false, 
-        error: error.message 
+      return NextResponse.json({
+        success: false,
+        error: error.message
       }, { status: 400 });
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      data 
+    return NextResponse.json({
+      success: true,
+      data
     });
   } catch (error: any) {
     console.error('Update user error:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: error.message 
+    return NextResponse.json({
+      success: false,
+      error: error.message
     }, { status: 500 });
   }
 }
@@ -150,39 +189,41 @@ export async function PUT(req: NextRequest) {
  */
 export async function DELETE(req: NextRequest) {
   try {
+    const authResult = await requireRole(req, ['admin']);
+    if (!('user' in authResult)) return authResult;
+
     const supabase = await createClient();
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'User ID required' 
+      return NextResponse.json({
+        success: false,
+        error: 'User ID required'
       }, { status: 400 });
     }
 
-    // Soft delete - mark as inactive
     const { error } = await supabase
       .from('users')
       .update({ is_active: false })
       .eq('id', id);
 
     if (error) {
-      return NextResponse.json({ 
-        success: false, 
-        error: error.message 
+      return NextResponse.json({
+        success: false,
+        error: error.message
       }, { status: 400 });
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: 'User deactivated' 
+    return NextResponse.json({
+      success: true,
+      message: 'User deactivated'
     });
   } catch (error: any) {
     console.error('Delete user error:', error);
-    return NextResponse.json({ 
-      success: false, 
-      error: error.message 
+    return NextResponse.json({
+      success: false,
+      error: error.message
     }, { status: 500 });
   }
 }

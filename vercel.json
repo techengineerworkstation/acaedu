@@ -2,5 +2,41 @@
   "framework": "nextjs",
   "buildCommand": "cd packages/web && pnpm build",
   "installCommand": "pnpm install --no-frozen-lockfile",
-  "outputDirectory": "packages/web/.next"
+  "outputDirectory": "packages/web/.next",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-XSS-Protection", "value": "1; mode=block" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self' https://*.supabase.co https://*.vercel.app; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/_next/static/:path*",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/_next/static/buildManifest.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
+      ]
+    }
+  ],
+  "rewrites": [
+    { "source": "/api/billing/webhook/paystack", "destination": "/api/billing/webhook/paystack" },
+    { "source": "/api/billing/webhook/paypal", "destination": "/api/billing/webhook/paypal" }
+  ]
 }

@@ -20,11 +20,11 @@ export const metadata: Metadata = {
   keywords: ['academic', 'scheduling', 'notifications', 'student', 'lecturer'],
   authors: [{ name: 'Acaedu Team' }],
   creator: 'Acaedu',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://acaedu.sbs'),
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+    url: process.env.NEXT_PUBLIC_APP_URL || 'https://acaedu.sbs',
     title: 'Acaedu - Smart Academic Scheduling',
     description: 'Never miss a class. Manage schedules, announcements, and exams with ease.',
     siteName: 'Acaedu'
